@@ -1,37 +1,21 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { State, Task } from "@/lib/types";
 import { TaskCard } from "@/components/TaskCard";
+import { columnDndId, taskDndId } from "@/lib/dndIds";
 
 interface BoardColumnProps {
   state: State;
   tasks: Task[];
   projectId: number;
-  runningTaskId: number | null;
-  runningTaskState: "ongoing" | "paused" | null;
-  runningTaskElapsedTime: number;
-  onStart: (taskId: number) => void;
-  onPause: (taskId: number) => void;
-  onResume: (taskId: number) => void;
-  onStop: (taskId: number) => void;
   onDelete: (taskId: number) => void;
+  onOpenTask: (taskId: number) => void;
 }
 
-export function BoardColumn({
-  state,
-  tasks,
-  projectId,
-  runningTaskId,
-  runningTaskState,
-  runningTaskElapsedTime,
-  onStart,
-  onPause,
-  onResume,
-  onStop,
-  onDelete,
-}: BoardColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({ id: state.id });
+export function BoardColumn({ state, tasks, projectId, onDelete, onOpenTask }: BoardColumnProps) {
+  const { setNodeRef, isOver } = useDroppable({ id: columnDndId(state.id) });
 
   return (
     <div className="column">
@@ -46,21 +30,20 @@ export function BoardColumn({
           transition: "background-color 0.2s ease",
         }}
       >
-        {tasks.map((task) => (
-          <TaskCard
-            key={task.id}
-            task={task}
-            projectId={projectId}
-            isRunning={runningTaskId === task.id}
-            runningState={runningTaskId === task.id ? runningTaskState : null}
-            elapsedSeconds={runningTaskElapsedTime}
-            onStart={onStart}
-            onPause={onPause}
-            onResume={onResume}
-            onStop={onStop}
-            onDelete={onDelete}
-          />
-        ))}
+        <SortableContext
+          items={tasks.map((t) => taskDndId(t.id))}
+          strategy={verticalListSortingStrategy}
+        >
+          {tasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              projectId={projectId}
+              onDelete={onDelete}
+              onOpenTask={onOpenTask}
+            />
+          ))}
+        </SortableContext>
       </div>
     </div>
   );

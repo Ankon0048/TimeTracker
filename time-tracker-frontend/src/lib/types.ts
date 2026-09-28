@@ -16,6 +16,7 @@ export interface Task {
   timeTaken: string;
   stateID: number;
   projectID?: number;
+  order: number;
 }
 
 export interface State {
@@ -26,5 +27,10 @@ export interface State {
 export type CreateProjectPayload = Omit<Project, "id" | "start">;
 export type UpdateProjectPayload = Omit<Project, "id" | "start">;
 
-export type CreateTaskPayload = Omit<Task, "id" | "stateID">;
-export type UpdateTaskPayload = Partial<Omit<Task, "id">>;
+export type CreateTaskPayload = Omit<Task, "id" | "stateID" | "order">;
+export type UpdateTaskPayload = Partial<Omit<Task, "id" | "order">>;
+
+export interface ReorderTasksPayload {
+  stateID: number;
+  taskIds: number[];
+}

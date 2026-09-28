@@ -65,5 +65,14 @@ namespace timeTracker.Controllers
             var result = await _taskService.GetNestedTasksAsync(parentTaskId);
             return Ok(result);
         }
+
+        // Persists the final task order of a Kanban column after a drag-and-drop
+        // (reordering in place and/or moving in from another column).
+        [HttpPut("reorder")]
+        public async Task<ActionResult<IEnumerable<TaskDto>>> ReorderTasks(ReorderTasksDto dto)
+        {
+            var result = await _taskService.ReorderTasksAsync(dto);
+            return Ok(result);
+        }
     }
 }

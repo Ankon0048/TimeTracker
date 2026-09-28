@@ -2,48 +2,47 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useDraggable } from "@dnd-kit/core";
+import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ChevronDown, ChevronRight, Pause, Pencil, Play, Plus, Square, Trash2 } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
 import { selectChildTasks } from "@/features/tasks/tasksSlice";
-import { formatStopwatch } from "@/lib/time";
+import { liveElapsedSeconds } from "@/features/timers/timersSlice";
+import { useTaskTimerActions } from "@/lib/useTaskTimer";
+import { useNowTick } from "@/lib/useNowTick";
+import { computeLiveSubtreeSeconds } from "@/lib/subtreeTime";
+import { secondsToTimeString } from "@/lib/time";
+import { taskDndId } from "@/lib/dndIds";
 import type { Task } from "@/lib/types";
 import { TaskTreeNode } from "@/components/TaskTreeNode";
 
 interface TaskCardProps {
   task: Task;
   projectId: number;
-  isRunning: boolean;
-  runningState: "ongoing" | "paused" | null;
-  elapsedSeconds: number;
-  onStart: (taskId: number) => void;
-  onPause: (taskId: number) => void;
-  onResume: (taskId: number) => void;
-  onStop: (taskId: number) => void;
   onDelete: (taskId: number) => void;
+  onOpenTask: (taskId: number) => void;
 }
 
-export function TaskCard({
-  task,
-  projectId,
-  isRunning,
-  runningState,
-  elapsedSeconds,
-  onStart,
-  onPause,
-  onResume,
-  onStop,
-  onDelete,
-}: TaskCardProps) {
+export function TaskCard({ task, projectId, onDelete, onOpenTask }: TaskCardProps) {
   const [expanded, setExpanded] = useState(false);
   const children = useAppSelector(selectChildTasks(task.id));
+  const tasks = useAppSelector((state) => state.tasks.items);
+  const running = useAppSelector((state) => state.timers.running);
+  const now = useNowTick();
+  const { start, pause, resume, stop } = useTaskTimerActions();
 
-  const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({ id: task.id });
+  const timer = running[task.id];
+  const isRunning = Boolean(timer);
+  const currentSessionSeconds = liveElapsedSeconds(timer, now);
+  const subtreeSeconds = computeLiveSubtreeSeconds(tasks, running, now, task.id);
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: taskDndId(task.id),
+  });
 
   const style = {
-    transform: CSS.Translate.toString(transform),
+    transform: CSS.Transform.toString(transform),
+    transition,
     opacity: isDragging ? 0.6 : 1,
   };
 
@@ -73,12 +72,14 @@ export function TaskCard({
             <span style={{ width: "1.5rem" }} />
           )}
           <span className="font-bold">{task.name}</span>
+          {isRunning && <span className="badge">Running</span>}
         </div>
         <div className="flex-row gap-2">
           <Link
             href={`/projects/${projectId}/tasks/new?parentId=${task.id}`}
             className="btn btn-icon"
             title="Add subtask"
+            onClick={(e) => e.stopPropagation()}
           >
             <Plus size={14} />
           </Link>
@@ -86,6 +87,7 @@ export function TaskCard({
             href={`/projects/${projectId}/tasks/${task.id}/edit`}
             className="btn btn-icon"
             title="Edit task"
+            onClick={(e) => e.stopPropagation()}
           >
             <Pencil size={14} />
           </Link>
@@ -93,7 +95,10 @@ export function TaskCard({
             className="btn btn-icon"
             title="Delete task"
             style={{ color: "var(--danger-color)", borderColor: "var(--danger-color)" }}
-            onClick={() => onDelete(task.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(task.id);
+            }}
           >
             <Trash2 size={14} />
           </button>
@@ -102,37 +107,44 @@ export function TaskCard({
 
       <div
         className="text-sm text-muted"
+        style={{ cursor: "pointer" }}
+        onClick={() => onOpenTask(task.id)}
         dangerouslySetInnerHTML={{ __html: task.description || "No description" }}
       />
 
       <div className="flex-row justify-between items-center">
-        <span className="text-xs text-muted">
-          {isRunning
-            ? `Tracking: ${formatStopwatch(elapsedSeconds)}`
-            : `Time tracked: ${task.timeTaken}`}
-        </span>
+        <div className="flex-col">
+          {isRunning && (
+            <span className="text-xs" style={{ color: "var(--accent-color)" }}>
+              Currently tracked: {secondsToTimeString(currentSessionSeconds)}
+            </span>
+          )}
+          <span className="text-xs text-muted">
+            Total tracked (incl. subtasks): {secondsToTimeString(subtreeSeconds)}
+          </span>
+        </div>
         <div className="flex-row gap-2">
           {!isRunning && (
             <button
               className="btn btn-icon"
               title="Start timer"
-              onClick={() => onStart(task.id)}
+              onClick={() => start(task, projectId)}
             >
               <Play size={14} />
             </button>
           )}
-          {isRunning && runningState === "ongoing" && (
-            <button className="btn btn-icon" title="Pause timer" onClick={() => onPause(task.id)}>
+          {isRunning && timer?.startedAt && (
+            <button className="btn btn-icon" title="Pause timer" onClick={() => pause(task.id)}>
               <Pause size={14} />
             </button>
           )}
-          {isRunning && runningState === "paused" && (
-            <button className="btn btn-icon" title="Resume timer" onClick={() => onResume(task.id)}>
+          {isRunning && !timer?.startedAt && (
+            <button className="btn btn-icon" title="Resume timer" onClick={() => resume(task.id)}>
               <Play size={14} />
             </button>
           )}
           {isRunning && (
-            <button className="btn btn-icon" title="Stop timer" onClick={() => onStop(task.id)}>
+            <button className="btn btn-icon" title="Stop timer" onClick={() => stop(task.id)}>
               <Square size={14} />
             </button>
           )}
@@ -142,7 +154,7 @@ export function TaskCard({
       {expanded && children.length > 0 && (
         <div className="nested-tasks">
           {children.map((child) => (
-            <TaskTreeNode key={child.id} task={child} />
+            <TaskTreeNode key={child.id} task={child} onOpenTask={onOpenTask} />
           ))}
         </div>
       )}

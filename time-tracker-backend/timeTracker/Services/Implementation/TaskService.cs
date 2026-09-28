@@ -15,27 +15,49 @@ namespace timeTracker.Services.Implementation
             _context = context;
         }
 
+        private async Task<int> GetOrCreateStateIdAsync(string name)
+        {
+            var state = await _context.States.FirstOrDefaultAsync(s => s.Name == name);
+            if (state == null)
+            {
+                state = new State { Name = name };
+                _context.States.Add(state);
+                await _context.SaveChangesAsync();
+            }
+            return state.ID;
+        }
+
         public async Task<TaskDto> CreateTaskAsync(CreateTaskDto dto)
         {
             int stateId;
 
             if (dto.ParentID == null)
             {
-                var pendingState = await _context.States.FirstOrDefaultAsync(s => s.Name == Constants.StatePending);
-                if (pendingState == null)
-                {
-                    pendingState = new State { Name = Constants.StatePending };
-                    _context.States.Add(pendingState);
-                    await _context.SaveChangesAsync();
-                }
-                stateId = pendingState.ID;
+                stateId = await GetOrCreateStateIdAsync(Constants.StatePending);
             }
             else
             {
                 var parentTask = await _context.Tasks.FindAsync(dto.ParentID);
                 if (parentTask == null) throw new ArgumentException("Parent task not found.");
-                stateId = parentTask.StateID;
+
+                // A brand-new subtask should never be born already "Completed" just
+                // because its parent happens to be — that reads as the parent (or the
+                // subtask itself) auto-completing. Only inherit the parent's state when
+                // that state isn't a terminal/completed one; otherwise start fresh at
+                // "Pending" like a top-level task would.
+                var parentState = await _context.States.FindAsync(parentTask.StateID);
+                var parentIsCompleted = parentState != null &&
+                    string.Equals(parentState.Name, Constants.StateCompleted, StringComparison.OrdinalIgnoreCase);
+
+                stateId = parentIsCompleted
+                    ? await GetOrCreateStateIdAsync(Constants.StatePending)
+                    : parentTask.StateID;
             }
+
+            var siblingMaxOrder = await _context.Tasks
+                .Where(t => t.ParentID == dto.ParentID)
+                .Select(t => (int?)t.Order)
+                .MaxAsync() ?? -1;
 
             var task = new TaskEntity
             {
@@ -45,7 +67,8 @@ namespace timeTracker.Services.Implementation
                 Start = dto.Start,
                 End = dto.End,
                 TimeTaken = dto.TimeTaken,
-                StateID = stateId
+                StateID = stateId,
+                Order = siblingMaxOrder + 1
             };
 
             _context.Tasks.Add(task);
@@ -83,7 +106,10 @@ namespace timeTracker.Services.Implementation
 
         public async Task<IEnumerable<TaskDto>> GetAllTasksAsync()
         {
-            var tasks = await _context.Tasks.ToListAsync();
+            var tasks = await _context.Tasks
+                .OrderBy(t => t.Order)
+                .ThenBy(t => t.ID)
+                .ToListAsync();
             return tasks.Select(MapToDto);
         }
 
@@ -91,6 +117,8 @@ namespace timeTracker.Services.Implementation
         {
             var tasks = await _context.Tasks
                 .Where(t => t.ParentID == parentTaskId)
+                .OrderBy(t => t.Order)
+                .ThenBy(t => t.ID)
                 .ToListAsync();
             return tasks.Select(MapToDto);
         }
@@ -102,7 +130,29 @@ namespace timeTracker.Services.Implementation
                 .Select(pt => pt.Task)
                 .ToListAsync();
 
-            return tasks.Where(t => t != null).Select(t => MapToDto(t!));
+            return tasks.Where(t => t != null)
+                .Select(t => t!)
+                .OrderBy(t => t.Order)
+                .ThenBy(t => t.ID)
+                .Select(MapToDto);
+        }
+
+        public async Task<IEnumerable<TaskDto>> ReorderTasksAsync(ReorderTasksDto dto)
+        {
+            var tasks = await _context.Tasks
+                .Where(t => dto.TaskIds.Contains(t.ID))
+                .ToListAsync();
+
+            for (var index = 0; index < dto.TaskIds.Count; index++)
+            {
+                var task = tasks.FirstOrDefault(t => t.ID == dto.TaskIds[index]);
+                if (task == null) continue;
+                task.StateID = dto.StateID;
+                task.Order = index;
+            }
+
+            await _context.SaveChangesAsync();
+            return tasks.OrderBy(t => t.Order).Select(MapToDto);
         }
 
         public async Task<TaskDto?> UpdateTaskAsync(int id, TaskDto dto)
@@ -145,7 +195,8 @@ namespace timeTracker.Services.Implementation
                 Start = task.Start,
                 End = task.End,
                 TimeTaken = task.TimeTaken,
-                StateID = task.StateID
+                StateID = task.StateID,
+                Order = task.Order
             };
         }
     }

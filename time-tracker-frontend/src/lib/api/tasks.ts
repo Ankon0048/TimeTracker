@@ -1,5 +1,10 @@
 import { apiClient } from "@/lib/apiClient";
-import type { CreateTaskPayload, Task, UpdateTaskPayload } from "@/lib/types";
+import type {
+  CreateTaskPayload,
+  ReorderTasksPayload,
+  Task,
+  UpdateTaskPayload,
+} from "@/lib/types";
 
 export const tasksApi = {
   getAll: async (): Promise<Task[]> => {
@@ -23,6 +28,10 @@ export const tasksApi = {
   },
   getNested: async (parentTaskId: number): Promise<Task[]> => {
     const res = await apiClient.get<Task[]>(`/Task/nested/${parentTaskId}`);
+    return res.data;
+  },
+  reorder: async (payload: ReorderTasksPayload): Promise<Task[]> => {
+    const res = await apiClient.put<Task[]>("/Task/reorder", payload);
     return res.data;
   },
 };

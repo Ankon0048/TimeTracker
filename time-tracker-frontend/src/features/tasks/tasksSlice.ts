@@ -1,6 +1,11 @@
 import { createAsyncThunk, createSelector, createSlice } from "@reduxjs/toolkit";
 import { tasksApi } from "@/lib/api/tasks";
-import type { CreateTaskPayload, Task, UpdateTaskPayload } from "@/lib/types";
+import type {
+  CreateTaskPayload,
+  ReorderTasksPayload,
+  Task,
+  UpdateTaskPayload,
+} from "@/lib/types";
 import type { RootState } from "@/lib/store";
 
 interface TasksState {
@@ -80,6 +85,18 @@ export const deleteTask = createAsyncThunk(
   }
 );
 
+// Persists the final task order of a Kanban column after a drag-and-drop.
+export const reorderTasks = createAsyncThunk(
+  "tasks/reorderTasks",
+  async (payload: ReorderTasksPayload, { rejectWithValue }) => {
+    try {
+      return await tasksApi.reorder(payload);
+    } catch (err) {
+      return rejectWithValue(errorMessage(err, "Failed to reorder tasks"));
+    }
+  }
+);
+
 const tasksSlice = createSlice({
   name: "tasks",
   initialState,
@@ -141,15 +158,29 @@ const tasksSlice = createSlice({
       .addCase(deleteTask.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+      })
+
+      .addCase(reorderTasks.fulfilled, (state, action) => {
+        for (const updated of action.payload) {
+          const index = state.items.findIndex((task) => task.id === updated.id);
+          if (index !== -1) {
+            state.items[index] = updated;
+          }
+        }
+      })
+      .addCase(reorderTasks.rejected, (state, action) => {
+        state.error = action.payload as string;
       });
   },
 });
 
 const selectTaskItems = (state: RootState) => state.tasks.items;
 
+const byOrder = (a: Task, b: Task) => a.order - b.order || a.id - b.id;
+
 export const selectTopLevelTasks = createSelector(
   [selectTaskItems],
-  (items): Task[] => items.filter((task) => task.parentID === null)
+  (items): Task[] => items.filter((task) => task.parentID === null).sort(byOrder)
 );
 
 // Cache one memoized selector per parentId so repeated calls with the same
@@ -165,7 +196,7 @@ export const selectChildTasks = (parentId: number): ((state: RootState) => Task[
   if (cached) return cached;
 
   const selector = createSelector([selectTaskItems], (items): Task[] =>
-    items.filter((task) => task.parentID === parentId)
+    items.filter((task) => task.parentID === parentId).sort(byOrder)
   );
   childTaskSelectorCache.set(parentId, selector);
   return selector;

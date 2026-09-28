@@ -10,5 +10,6 @@ namespace timeTracker.Services.Interfaces
         Task<IEnumerable<TaskDto>> GetAllTasksAsync();
         Task<IEnumerable<TaskDto>> GetParentTasksAsync(int projectId);
         Task<IEnumerable<TaskDto>> GetNestedTasksAsync(int parentTaskId);
+        Task<IEnumerable<TaskDto>> ReorderTasksAsync(ReorderTasksDto dto);
     }
 }

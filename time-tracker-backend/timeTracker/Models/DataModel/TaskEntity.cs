@@ -24,6 +24,10 @@ namespace timeTracker.Models.DataModel
 
         public int StateID { get; set; }
 
+        // Position among sibling tasks within a state column, ascending. Used to
+        // preserve manual drag-to-reorder ordering on the Kanban board.
+        public int Order { get; set; }
+
         [ForeignKey("ParentID")]
         public TaskEntity? Parent { get; set; }
 
