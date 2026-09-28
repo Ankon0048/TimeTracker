@@ -107,20 +107,27 @@ export function TaskCard({ task, projectId, onDelete, onOpenTask }: TaskCardProp
 
       <div
         className="text-sm text-muted"
-        style={{ cursor: "pointer" }}
+        style={{ cursor: "pointer", minHeight: "1.5rem", padding: "0.25rem 0" }}
         onClick={() => onOpenTask(task.id)}
         dangerouslySetInnerHTML={{ __html: task.description || "No description" }}
       />
 
-      <div className="flex-row justify-between items-center">
-        <div className="flex-col">
+      <div
+        className="flex-row justify-between items-center"
+        style={{
+          borderTop: "1px solid #f1f5f9",
+          paddingTop: "0.75rem",
+          marginTop: "0.25rem",
+        }}
+      >
+        <div className="flex-col gap-1">
           {isRunning && (
-            <span className="text-xs" style={{ color: "var(--accent-color)" }}>
-              Currently tracked: {secondsToTimeString(currentSessionSeconds)}
+            <span className="text-xs font-semibold" style={{ color: "var(--accent-color)" }}>
+              Session: {secondsToTimeString(currentSessionSeconds)}
             </span>
           )}
           <span className="text-xs text-muted">
-            Total tracked (incl. subtasks): {secondsToTimeString(subtreeSeconds)}
+            Total: {secondsToTimeString(subtreeSeconds)}
           </span>
         </div>
         <div className="flex-row gap-2">

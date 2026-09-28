@@ -126,26 +126,26 @@ export default function ProjectBoardPage() {
   };
 
   return (
-    <div className="container flex-col gap-6" style={{ maxWidth: "100%" }}>
+    <div className="container-fluid">
       <button className="btn" style={{ alignSelf: "flex-start" }} onClick={() => router.push("/projects")}>
-        <ArrowLeft size={16} style={{ marginRight: "0.375rem" }} />
-        Back to Projects
+        <ArrowLeft size={16} />
+        <span>Back to Projects</span>
       </button>
 
       {project ? (
-        <div className="flex-row justify-between items-center">
+        <div className="flex-row justify-between items-center" style={{ flexWrap: "wrap", gap: "1.5rem" }}>
           <div className="flex-col gap-2">
-            <h1>{project.name}</h1>
-            <p className="text-muted" dangerouslySetInnerHTML={{ __html: project.description || "" }} />
+            <h1 className="text-3xl font-bold">{project.name}</h1>
+            <div className="text-muted" dangerouslySetInnerHTML={{ __html: project.description || "" }} />
           </div>
-          <div className="flex-row gap-2">
+          <div className="flex-row gap-3">
             <Link href={`/projects/${projectId}/tasks/new`} className="btn btn-primary">
-              <Plus size={16} style={{ marginRight: "0.375rem" }} />
-              New Task
+              <Plus size={16} />
+              <span>New Task</span>
             </Link>
             <button className="btn" onClick={() => router.push(`/projects/${projectId}/edit`)}>
-              <Pencil size={16} style={{ marginRight: "0.375rem" }} />
-              Edit
+              <Pencil size={16} />
+              <span>Edit</span>
             </button>
           </div>
         </div>
@@ -153,16 +153,23 @@ export default function ProjectBoardPage() {
         <p className="text-muted">Loading project…</p>
       )}
 
-      <form className="flex-row gap-4 items-center card" onSubmit={handleAddState} style={{ padding: "1rem 1.5rem" }}>
-        <label className="font-medium text-sm">State Name</label>
+      <form
+        className="flex-row gap-4 items-center card"
+        onSubmit={handleAddState}
+        style={{ padding: "1.25rem 1.75rem", alignSelf: "flex-start", flexWrap: "wrap" }}
+      >
+        <label className="font-semibold text-sm" style={{ whiteSpace: "nowrap" }}>
+          Add State
+        </label>
         <input
           type="text"
           className="input"
           value={newStateName}
           onChange={(e) => setNewStateName(e.target.value)}
-          placeholder="e.g. In Progress"
+          placeholder="e.g. Code Review"
+          style={{ width: "260px" }}
         />
-        <button type="submit" className="btn btn-primary">
+        <button type="submit" className="btn btn-primary" style={{ whiteSpace: "nowrap" }}>
           Add State
         </button>
       </form>

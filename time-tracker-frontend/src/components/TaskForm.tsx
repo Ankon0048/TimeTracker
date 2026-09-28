@@ -74,13 +74,15 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   };
 
   return (
-    <form className="card flex-col gap-4" onSubmit={handleSubmit}>
+    <form className="card flex-col gap-6" style={{ padding: "2rem 2.25rem" }} onSubmit={handleSubmit}>
       {(error || formError) && (
-        <p style={{ color: "var(--danger-color)" }}>{error ?? formError}</p>
+        <div style={{ padding: "0.75rem 1rem", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "0.5rem" }}>
+          <p style={{ color: "var(--danger-color)", fontSize: "0.875rem" }}>{error ?? formError}</p>
+        </div>
       )}
 
       <div className="flex-col gap-2">
-        <label className="text-sm font-medium" htmlFor="task-name">
+        <label className="text-sm font-semibold" htmlFor="task-name">
           Name
         </label>
         <input
@@ -94,7 +96,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       </div>
 
       <div className="flex-col gap-2">
-        <label className="text-sm font-medium">Description</label>
+        <label className="text-sm font-semibold">Description</label>
         <RichTextEditor
           value={description}
           onChange={setDescription}
@@ -103,7 +105,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       </div>
 
       <div className="flex-col gap-2">
-        <label className="text-sm font-medium" htmlFor="task-parent">
+        <label className="text-sm font-semibold" htmlFor="task-parent">
           Parent Task
         </label>
         <select
@@ -121,9 +123,9 @@ export const TaskForm: React.FC<TaskFormProps> = ({
         </select>
       </div>
 
-      <div className="flex-row gap-4">
-        <div className="flex-col gap-2">
-          <label className="text-sm font-medium" htmlFor="task-end">
+      <div className="flex-row gap-6" style={{ flexWrap: "wrap" }}>
+        <div className="flex-col gap-2" style={{ minWidth: "180px" }}>
+          <label className="text-sm font-semibold" htmlFor="task-end">
             End Date
           </label>
           <input
@@ -135,8 +137,8 @@ export const TaskForm: React.FC<TaskFormProps> = ({
           />
         </div>
 
-        <div className="flex-col gap-2">
-          <label className="text-sm font-medium" htmlFor="task-time-taken">
+        <div className="flex-col gap-2" style={{ minWidth: "180px" }}>
+          <label className="text-sm font-semibold" htmlFor="task-time-taken">
             Time Taken (HH:MM:SS)
           </label>
           <input
@@ -146,12 +148,11 @@ export const TaskForm: React.FC<TaskFormProps> = ({
             value={timeTaken}
             onChange={(e) => setTimeTaken(e.target.value)}
             placeholder="00:00:00"
-            style={{ maxWidth: "140px" }}
           />
         </div>
       </div>
 
-      <div className="flex-row gap-2">
+      <div className="flex-row gap-3 pt-2">
         <button type="submit" className="btn btn-primary" disabled={submitting}>
           {submitting ? "Saving…" : submitLabel}
         </button>

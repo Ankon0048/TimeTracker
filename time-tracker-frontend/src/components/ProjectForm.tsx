@@ -45,11 +45,15 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
   };
 
   return (
-    <form className="card flex-col gap-4" onSubmit={handleSubmit}>
-      {error && <p style={{ color: "var(--danger-color)" }}>{error}</p>}
+    <form className="card flex-col gap-6" style={{ padding: "2rem 2.25rem" }} onSubmit={handleSubmit}>
+      {error && (
+        <div style={{ padding: "0.75rem 1rem", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "0.5rem" }}>
+          <p style={{ color: "var(--danger-color)", fontSize: "0.875rem" }}>{error}</p>
+        </div>
+      )}
 
       <div className="flex-col gap-2">
-        <label className="text-sm font-medium" htmlFor="project-name">
+        <label className="text-sm font-semibold" htmlFor="project-name">
           Name
         </label>
         <input
@@ -63,7 +67,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
       </div>
 
       <div className="flex-col gap-2">
-        <label className="text-sm font-medium">Description</label>
+        <label className="text-sm font-semibold">Description</label>
         <RichTextEditor
           value={description}
           onChange={setDescription}
@@ -72,7 +76,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
       </div>
 
       <div className="flex-col gap-2">
-        <label className="text-sm font-medium" htmlFor="project-end">
+        <label className="text-sm font-semibold" htmlFor="project-end">
           End Date
         </label>
         <input
@@ -85,7 +89,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
         />
       </div>
 
-      <div className="flex-row gap-2">
+      <div className="flex-row gap-3 pt-2">
         <button type="submit" className="btn btn-primary" disabled={submitting}>
           {submitting ? "Saving…" : submitLabel}
         </button>

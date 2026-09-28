@@ -65,25 +65,26 @@ export function TaskDetailModal({ taskId, projectId, onClose }: TaskDetailModalP
       onClick={onClose}
     >
       <div
-        className="card flex-col gap-4"
+        className="card flex-col gap-6"
         style={{
           width: "600px",
           maxWidth: "100%",
           maxHeight: "90vh",
           overflowY: "auto",
-          backgroundColor: "var(--bg-primary)",
+          backgroundColor: "var(--bg-secondary)",
+          padding: "2rem 2.25rem",
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex-row justify-between items-center">
-          <h2>Task Details</h2>
+          <h2 className="text-xl font-bold">Task Details</h2>
           <button className="btn btn-icon" onClick={onClose} type="button">
             <X size={18} />
           </button>
         </div>
 
         <div className="flex-col gap-2">
-          <label className="text-sm font-medium">Name</label>
+          <label className="text-sm font-semibold">Name</label>
           {isEditing ? (
             <input
               type="text"
@@ -92,23 +93,31 @@ export function TaskDetailModal({ taskId, projectId, onClose }: TaskDetailModalP
               onChange={(e) => setName(e.target.value)}
             />
           ) : (
-            <h3 style={{ margin: 0 }}>{task.name}</h3>
+            <h3 style={{ margin: 0, fontSize: "1.25rem" }}>{task.name}</h3>
           )}
         </div>
 
         <div className="flex-col gap-2">
-          <label className="text-sm font-medium">Description</label>
+          <label className="text-sm font-semibold">Description</label>
           {isEditing ? (
             <RichTextEditor value={description} onChange={setDescription} />
           ) : (
             <div
               className="text-sm"
+              style={{ lineHeight: 1.6 }}
               dangerouslySetInnerHTML={{ __html: task.description || "No description" }}
             />
           )}
         </div>
 
-        <div className="card flex-col gap-2" style={{ backgroundColor: "#eff6ff" }}>
+        <div
+          className="card flex-col gap-3"
+          style={{
+            backgroundColor: "#eff6ff",
+            borderColor: "#bfdbfe",
+            padding: "1.25rem 1.5rem",
+          }}
+        >
           <div className="flex-row justify-between items-center">
             <span className="text-sm font-medium">Currently tracked (this session)</span>
             <span className="font-bold" style={{ color: "var(--accent-color)" }}>
@@ -121,7 +130,7 @@ export function TaskDetailModal({ taskId, projectId, onClose }: TaskDetailModalP
           </div>
         </div>
 
-        <div className="flex-row justify-between items-center">
+        <div className="flex-row justify-between items-center pt-2">
           <div className="flex-row gap-2">
             {!isRunning && (
               <button className="btn btn-primary" onClick={() => start(task, projectId)}>

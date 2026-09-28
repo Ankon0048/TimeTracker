@@ -27,20 +27,20 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="container flex-col gap-6">
-      <div className="flex-row justify-between items-center">
-        <h1>Projects</h1>
+    <div className="container">
+      <div className="flex-row justify-between items-center py-2">
+        <h1 className="text-3xl font-bold">Projects</h1>
         <Link href="/projects/new" className="btn btn-primary">
-          <Plus size={16} style={{ marginRight: "0.375rem" }} />
-          New Project
+          <Plus size={16} />
+          <span>New Project</span>
         </Link>
       </div>
 
       {loading && projects.length === 0 ? (
         <CardSkeletonList />
       ) : projects.length === 0 ? (
-        <div className="card">
-          <p className="text-muted">
+        <div className="card" style={{ padding: "3rem 2rem", textAlign: "center" }}>
+          <p className="text-muted" style={{ fontSize: "1rem" }}>
             No projects yet. Create your first project to get started.
           </p>
         </div>
@@ -49,21 +49,27 @@ export default function ProjectsPage() {
           {projects.map((project) => (
             <div
               key={project.id}
-              className="card flex-row justify-between items-center"
+              className="card card-hover flex-row justify-between items-center"
+              style={{ padding: "1.5rem 2rem", gap: "2rem" }}
             >
-              <Link href={`/projects/${project.id}`} className="flex-col gap-2">
-                <h3>{project.name}</h3>
-                <p
+              <Link
+                href={`/projects/${project.id}`}
+                className="flex-col gap-2"
+                style={{ flex: 1, minWidth: 0 }}
+              >
+                <h3 className="text-lg font-semibold">{project.name}</h3>
+                <div
                   className="text-sm text-muted"
+                  style={{ lineHeight: 1.6 }}
                   dangerouslySetInnerHTML={{
                     __html: project.description || "No description",
                   }}
                 />
-                <span className="text-xs text-muted">
+                <span className="text-xs text-muted" style={{ marginTop: "0.25rem" }}>
                   Created {new Date(project.start).toLocaleDateString()}
                 </span>
               </Link>
-              <div className="flex-row gap-2">
+              <div className="flex-row gap-3" style={{ flexShrink: 0 }}>
                 <Link
                   href={`/projects/${project.id}/edit`}
                   className="btn btn-icon"
