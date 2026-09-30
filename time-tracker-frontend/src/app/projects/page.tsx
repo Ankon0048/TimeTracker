@@ -2,7 +2,20 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { Trash2, Pencil, Plus } from "lucide-react";
+import {
+  ActionIcon,
+  Box,
+  Button,
+  Container,
+  Group,
+  Paper,
+  Stack,
+  Text,
+  Title,
+  Tooltip,
+} from "@mantine/core";
+import { modals } from "@mantine/modals";
+import { CalendarDays, Pencil, Plus, Trash2 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { deleteProject, fetchProjects } from "@/features/projects/projectsSlice";
 import { useErrorToast } from "@/lib/useErrorToast";
@@ -21,78 +34,96 @@ export default function ProjectsPage() {
   useErrorToast(error);
 
   const handleDelete = (id: number, name: string) => {
-    if (window.confirm(`Delete project "${name}"? This cannot be undone.`)) {
-      dispatch(deleteProject(id));
-    }
+    modals.openConfirmModal({
+      title: "Delete project",
+      children: (
+        <Text size="sm">
+          Delete project <b>{name}</b>? This cannot be undone.
+        </Text>
+      ),
+      labels: { confirm: "Delete", cancel: "Cancel" },
+      confirmProps: { color: "red" },
+      onConfirm: () => dispatch(deleteProject(id)),
+    });
   };
 
   return (
-    <div className="container">
-      <div className="flex-row justify-between items-center py-2">
-        <h1 className="text-3xl font-bold">Projects</h1>
-        <Link href="/projects/new" className="btn btn-primary">
-          <Plus size={16} />
-          <span>New Project</span>
-        </Link>
-      </div>
+    <Container size="lg" py="xl">
+      <Stack gap="xl">
+        <Group justify="space-between">
+          <Title order={1}>Projects</Title>
+          <Button component={Link} href="/projects/new" leftSection={<Plus size={16} />}>
+            New project
+          </Button>
+        </Group>
 
-      {loading && projects.length === 0 ? (
-        <CardSkeletonList />
-      ) : projects.length === 0 ? (
-        <div className="card" style={{ padding: "3rem 2rem", textAlign: "center" }}>
-          <p className="text-muted" style={{ fontSize: "1rem" }}>
-            No projects yet. Create your first project to get started.
-          </p>
-        </div>
-      ) : (
-        <div className="flex-col gap-4">
-          {projects.map((project) => (
-            <div
-              key={project.id}
-              className="card card-hover flex-row justify-between items-center"
-              style={{ padding: "1.5rem 2rem", gap: "2rem" }}
-            >
-              <Link
-                href={`/projects/${project.id}`}
-                className="flex-col gap-2"
-                style={{ flex: 1, minWidth: 0 }}
-              >
-                <h3 className="text-lg font-semibold">{project.name}</h3>
-                <div
-                  className="text-sm text-muted"
-                  style={{ lineHeight: 1.6 }}
-                  dangerouslySetInnerHTML={{
-                    __html: project.description || "No description",
-                  }}
-                />
-                <span className="text-xs text-muted" style={{ marginTop: "0.25rem" }}>
-                  Created {new Date(project.start).toLocaleDateString()}
-                </span>
-              </Link>
-              <div className="flex-row gap-3" style={{ flexShrink: 0 }}>
-                <Link
-                  href={`/projects/${project.id}/edit`}
-                  className="btn btn-icon"
-                  title="Edit project"
-                >
-                  <Pencil size={16} />
-                </Link>
-                <button
-                  className="btn btn-icon"
-                  title="Delete project"
-                  style={{
-                    color: "var(--danger-color)",
-                    borderColor: "var(--danger-color)",
-                  }}
-                  onClick={() => handleDelete(project.id, project.name)}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+        {loading && projects.length === 0 ? (
+          <CardSkeletonList />
+        ) : projects.length === 0 ? (
+          <Paper withBorder radius="md" p="xl" ta="center">
+            <Text c="dimmed">No projects yet. Create your first project to get started.</Text>
+          </Paper>
+        ) : (
+          <Stack gap="md">
+            {projects.map((project) => (
+              <Paper key={project.id} withBorder radius="md" p="lg" className="task-card">
+                <Group justify="space-between" wrap="nowrap" align="flex-start" gap="lg">
+                  <Box
+                    component={Link}
+                    href={`/projects/${project.id}`}
+                    style={{ flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}
+                  >
+                    <Stack gap={6}>
+                      <Text fw={600} size="lg" style={{ wordBreak: "break-word" }}>
+                        {project.name}
+                      </Text>
+                      {project.description && project.description !== "<p></p>" ? (
+                        <Box
+                          className="rich-text"
+                          fz="sm"
+                          c="dimmed"
+                          dangerouslySetInnerHTML={{ __html: project.description }}
+                        />
+                      ) : (
+                        <Text size="sm" c="dimmed" fs="italic">
+                          No description
+                        </Text>
+                      )}
+                      <Group gap={6} c="dimmed">
+                        <CalendarDays size={14} />
+                        <Text size="xs">Created {new Date(project.start).toLocaleDateString()}</Text>
+                      </Group>
+                    </Stack>
+                  </Box>
+                  <Group gap="sm" wrap="nowrap">
+                    <Tooltip label="Edit project">
+                      <ActionIcon
+                        size="lg"
+                        component={Link}
+                        href={`/projects/${project.id}/edit`}
+                        aria-label="Edit project"
+                      >
+                        <Pencil size={16} />
+                      </ActionIcon>
+                    </Tooltip>
+                    <Tooltip label="Delete project">
+                      <ActionIcon
+                        size="lg"
+                        color="red"
+                        variant="light"
+                        aria-label="Delete project"
+                        onClick={() => handleDelete(project.id, project.name)}
+                      >
+                        <Trash2 size={16} />
+                      </ActionIcon>
+                    </Tooltip>
+                  </Group>
+                </Group>
+              </Paper>
+            ))}
+          </Stack>
+        )}
+      </Stack>
+    </Container>
   );
 }

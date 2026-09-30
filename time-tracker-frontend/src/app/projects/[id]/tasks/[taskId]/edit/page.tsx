@@ -6,6 +6,7 @@ import { TaskForm } from "@/components/TaskForm";
 import type { TaskFormValues } from "@/components/TaskForm";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { fetchProjectTasks, updateTask } from "@/features/tasks/tasksSlice";
+import { Container, Stack, Text, Title } from "@mantine/core";
 
 export default function EditTaskPage() {
   const { id, taskId } = useParams<{ id: string; taskId: string }>();
@@ -52,32 +53,34 @@ export default function EditTaskPage() {
 
   if (!task) {
     return (
-      <div className="container">
-        <p className="text-muted">{loading ? "Loading task…" : "Task not found."}</p>
-      </div>
+      <Container size={760} py="xl">
+        <Text c="dimmed">{loading ? "Loading task…" : "Task not found."}</Text>
+      </Container>
     );
   }
 
   return (
-    <div className="container flex-col gap-6" style={{ maxWidth: "700px" }}>
-      <h1>Edit Task</h1>
-      <TaskForm
-        parentOptions={tasks}
-        excludeTaskId={task.id}
-        initialValues={{
-          name: task.name,
-          description: task.description,
-          parentID: task.parentID,
-          start: task.start,
-          end: task.end,
-          timeTaken: task.timeTaken,
-        }}
-        submitLabel="Save Changes"
-        submitting={submitting}
-        error={error}
-        onSubmit={handleSubmit}
-        onCancel={() => router.push(`/projects/${projectId}`)}
-      />
-    </div>
+    <Container size={760} py="xl">
+      <Stack gap="lg">
+        <Title order={1}>Edit Task</Title>
+        <TaskForm
+          parentOptions={tasks}
+          excludeTaskId={task.id}
+          initialValues={{
+            name: task.name,
+            description: task.description,
+            parentID: task.parentID,
+            start: task.start,
+            end: task.end,
+            timeTaken: task.timeTaken,
+          }}
+          submitLabel="Save Changes"
+          submitting={submitting}
+          error={error}
+          onSubmit={handleSubmit}
+          onCancel={() => router.push(`/projects/${projectId}`)}
+        />
+      </Stack>
+    </Container>
   );
 }

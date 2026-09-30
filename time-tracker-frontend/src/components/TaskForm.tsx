@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
+import { Alert, Button, Group, Input, NativeSelect, Paper, SimpleGrid, Stack, TextInput } from "@mantine/core";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { getDescendantIds } from "@/lib/taskHierarchy";
 import type { Task } from "@/lib/types";
 
 export interface TaskFormValues {
@@ -51,9 +53,11 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   );
   const [formError, setFormError] = useState<string | null>(null);
 
-  const availableParents = parentOptions.filter(
-    (task) => task.id !== excludeTaskId
+  // A task can't become its own parent, nor a child of one of its own subtasks.
+  const excluded = new Set(
+    excludeTaskId != null ? [excludeTaskId, ...getDescendantIds(parentOptions, excludeTaskId)] : []
   );
+  const availableParents = parentOptions.filter((task) => !excluded.has(task.id));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,92 +78,64 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   };
 
   return (
-    <form className="card flex-col gap-6" style={{ padding: "2rem 2.25rem" }} onSubmit={handleSubmit}>
-      {(error || formError) && (
-        <div style={{ padding: "0.75rem 1rem", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "0.5rem" }}>
-          <p style={{ color: "var(--danger-color)", fontSize: "0.875rem" }}>{error ?? formError}</p>
-        </div>
-      )}
+    <Paper withBorder radius="md" p="xl" component="form" onSubmit={handleSubmit}>
+      <Stack gap="lg">
+        {(error || formError) && (
+          <Alert color="red" variant="light">
+            {error ?? formError}
+          </Alert>
+        )}
 
-      <div className="flex-col gap-2">
-        <label className="text-sm font-semibold" htmlFor="task-name">
-          Name
-        </label>
-        <input
-          id="task-name"
-          type="text"
-          className="input"
+        <TextInput
+          label="Name"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => setName(e.currentTarget.value)}
           required
         />
-      </div>
 
-      <div className="flex-col gap-2">
-        <label className="text-sm font-semibold">Description</label>
-        <RichTextEditor
-          value={description}
-          onChange={setDescription}
-          placeholder="Describe the task…"
-        />
-      </div>
+        <Input.Wrapper label="Description">
+          <RichTextEditor
+            value={description}
+            onChange={setDescription}
+            placeholder="Describe the task…"
+          />
+        </Input.Wrapper>
 
-      <div className="flex-col gap-2">
-        <label className="text-sm font-semibold" htmlFor="task-parent">
-          Parent Task
-        </label>
-        <select
-          id="task-parent"
-          className="select"
+        <NativeSelect
+          label="Parent task"
           value={parentID}
-          onChange={(e) => setParentID(e.target.value)}
-        >
-          <option value="">None (top-level task)</option>
-          {availableParents.map((task) => (
-            <option key={task.id} value={task.id}>
-              {task.name}
-            </option>
-          ))}
-        </select>
-      </div>
+          onChange={(e) => setParentID(e.currentTarget.value)}
+          data={[
+            { value: "", label: "None (top-level task)" },
+            ...availableParents.map((task) => ({ value: String(task.id), label: task.name })),
+          ]}
+        />
 
-      <div className="flex-row gap-6" style={{ flexWrap: "wrap" }}>
-        <div className="flex-col gap-2" style={{ minWidth: "180px" }}>
-          <label className="text-sm font-semibold" htmlFor="task-end">
-            End Date
-          </label>
-          <input
-            id="task-end"
+        <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="lg">
+          <TextInput
+            label="End date"
             type="date"
-            className="input"
             value={end}
-            onChange={(e) => setEnd(e.target.value)}
+            onChange={(e) => setEnd(e.currentTarget.value)}
           />
-        </div>
-
-        <div className="flex-col gap-2" style={{ minWidth: "180px" }}>
-          <label className="text-sm font-semibold" htmlFor="task-time-taken">
-            Time Taken (HH:MM:SS)
-          </label>
-          <input
-            id="task-time-taken"
-            type="text"
-            className="input"
+          <TextInput
+            label="Time taken (HH:MM:SS)"
             value={timeTaken}
-            onChange={(e) => setTimeTaken(e.target.value)}
+            onChange={(e) => setTimeTaken(e.currentTarget.value)}
             placeholder="00:00:00"
+            error={formError ? true : undefined}
           />
-        </div>
-      </div>
+        </SimpleGrid>
 
-      <div className="flex-row gap-3 pt-2">
-        <button type="submit" className="btn btn-primary" disabled={submitting}>
-          {submitting ? "Saving…" : submitLabel}
-        </button>
-        <button type="button" className="btn" onClick={onCancel}>
-          Cancel
-        </button>
-      </div>
-    </form>
+        <Group gap="sm" pt="xs">
+          <Button type="submit" loading={submitting}>
+            {submitLabel}
+          </Button>
+          <Button variant="default" onClick={onCancel}>
+            Cancel
+          </Button>
+        </Group>
+      </Stack>
+    </Paper>
   );
 };

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Alert, Button, Group, Input, Paper, Stack, TextInput } from "@mantine/core";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import type { CreateProjectPayload } from "@/lib/types";
 
@@ -45,58 +46,47 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
   };
 
   return (
-    <form className="card flex-col gap-6" style={{ padding: "2rem 2.25rem" }} onSubmit={handleSubmit}>
-      {error && (
-        <div style={{ padding: "0.75rem 1rem", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "0.5rem" }}>
-          <p style={{ color: "var(--danger-color)", fontSize: "0.875rem" }}>{error}</p>
-        </div>
-      )}
+    <Paper withBorder radius="md" p="xl" component="form" onSubmit={handleSubmit}>
+      <Stack gap="lg">
+        {error && (
+          <Alert color="red" variant="light">
+            {error}
+          </Alert>
+        )}
 
-      <div className="flex-col gap-2">
-        <label className="text-sm font-semibold" htmlFor="project-name">
-          Name
-        </label>
-        <input
-          id="project-name"
-          type="text"
-          className="input"
+        <TextInput
+          label="Name"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => setName(e.currentTarget.value)}
           required
         />
-      </div>
 
-      <div className="flex-col gap-2">
-        <label className="text-sm font-semibold">Description</label>
-        <RichTextEditor
-          value={description}
-          onChange={setDescription}
-          placeholder="Describe the project…"
-        />
-      </div>
+        <Input.Wrapper label="Description">
+          <RichTextEditor
+            value={description}
+            onChange={setDescription}
+            placeholder="Describe the project…"
+          />
+        </Input.Wrapper>
 
-      <div className="flex-col gap-2">
-        <label className="text-sm font-semibold" htmlFor="project-end">
-          End Date
-        </label>
-        <input
-          id="project-end"
+        <TextInput
+          label="End date"
           type="date"
-          className="input"
           value={end}
-          onChange={(e) => setEnd(e.target.value)}
-          style={{ maxWidth: "220px" }}
+          onChange={(e) => setEnd(e.currentTarget.value)}
+          w={220}
+          maw="100%"
         />
-      </div>
 
-      <div className="flex-row gap-3 pt-2">
-        <button type="submit" className="btn btn-primary" disabled={submitting}>
-          {submitting ? "Saving…" : submitLabel}
-        </button>
-        <button type="button" className="btn" onClick={onCancel}>
-          Cancel
-        </button>
-      </div>
-    </form>
+        <Group gap="sm" pt="xs">
+          <Button type="submit" loading={submitting}>
+            {submitLabel}
+          </Button>
+          <Button variant="default" onClick={onCancel}>
+            Cancel
+          </Button>
+        </Group>
+      </Stack>
+    </Paper>
   );
 };

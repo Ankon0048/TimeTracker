@@ -51,3 +51,35 @@ export function findConflictingRunningRelative(
   }
   return null;
 }
+
+/** The top-level (parentless) task at the root of the tree `taskId` belongs to. */
+export function getRootTaskId(tasks: Task[], taskId: number): number {
+  const ancestors = getAncestorIds(tasks, taskId);
+  return ancestors.length > 0 ? ancestors[ancestors.length - 1] : taskId;
+}
+
+export interface TaskTreeNode {
+  task: Task;
+  children: TaskTreeNode[];
+}
+
+/** Nested tree of `rootId` and all its descendants, siblings sorted by order. */
+export function buildTaskTree(tasks: Task[], rootId: number): TaskTreeNode | null {
+  const children = new Map<number, Task[]>();
+  for (const task of tasks) {
+    if (task.parentID === null) continue;
+    if (!children.has(task.parentID)) children.set(task.parentID, []);
+    children.get(task.parentID)!.push(task);
+  }
+  const root = tasks.find((t) => t.id === rootId);
+  if (!root) return null;
+
+  const build = (task: Task): TaskTreeNode => ({
+    task,
+    children: (children.get(task.id) ?? [])
+      .slice()
+      .sort((a, b) => a.order - b.order || a.id - b.id)
+      .map(build),
+  });
+  return build(root);
+}

@@ -6,6 +6,7 @@ import { ProjectForm } from "@/components/ProjectForm";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { fetchProjects, updateProject } from "@/features/projects/projectsSlice";
 import type { CreateProjectPayload } from "@/lib/types";
+import { Container, Stack, Text, Title } from "@mantine/core";
 
 export default function EditProjectPage() {
   const { id } = useParams<{ id: string }>();
@@ -41,29 +42,31 @@ export default function EditProjectPage() {
 
   if (!project) {
     return (
-      <div className="container">
-        <p className="text-muted">
+      <Container size={760} py="xl">
+        <Text c="dimmed">
           {listLoading ? "Loading project…" : "Project not found."}
-        </p>
-      </div>
+        </Text>
+      </Container>
     );
   }
 
   return (
-    <div className="container flex-col gap-6" style={{ maxWidth: "700px" }}>
-      <h1>Edit Project</h1>
-      <ProjectForm
-        initialValues={{
-          name: project.name,
-          description: project.description,
-          end: project.end ? project.end.slice(0, 10) : "",
-        }}
-        submitLabel="Save Changes"
-        submitting={submitting}
-        error={error}
-        onSubmit={handleSubmit}
-        onCancel={() => router.push(`/projects/${projectId}`)}
-      />
-    </div>
+    <Container size={760} py="xl">
+      <Stack gap="lg">
+        <Title order={1}>Edit Project</Title>
+        <ProjectForm
+          initialValues={{
+            name: project.name,
+            description: project.description,
+            end: project.end ? project.end.slice(0, 10) : "",
+          }}
+          submitLabel="Save Changes"
+          submitting={submitting}
+          error={error}
+          onSubmit={handleSubmit}
+          onCancel={() => router.push(`/projects/${projectId}`)}
+        />
+      </Stack>
+    </Container>
   );
 }

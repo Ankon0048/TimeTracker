@@ -1,30 +1,39 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronDown, ChevronRight, Pause, Pencil, Play, Plus, Square, Trash2 } from "lucide-react";
+import { ActionIcon, Badge, Box, Button, Group, Menu, Paper, Stack, Text, Tooltip } from "@mantine/core";
+import {
+  EllipsisVertical,
+  GripVertical,
+  ListTree,
+  Pause,
+  Pencil,
+  Play,
+  Plus,
+  Square,
+  Trash2,
+} from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
 import { selectChildTasks } from "@/features/tasks/tasksSlice";
 import { liveElapsedSeconds } from "@/features/timers/timersSlice";
 import { useTaskTimerActions } from "@/lib/useTaskTimer";
 import { useNowTick } from "@/lib/useNowTick";
 import { computeLiveSubtreeSeconds } from "@/lib/subtreeTime";
+import { getDescendantIds } from "@/lib/taskHierarchy";
 import { secondsToTimeString } from "@/lib/time";
 import { taskDndId } from "@/lib/dndIds";
 import type { Task } from "@/lib/types";
-import { TaskTreeNode } from "@/components/TaskTreeNode";
 
 interface TaskCardProps {
   task: Task;
   projectId: number;
-  onDelete: (taskId: number) => void;
+  onDelete: (task: Task) => void;
   onOpenTask: (taskId: number) => void;
 }
 
 export function TaskCard({ task, projectId, onDelete, onOpenTask }: TaskCardProps) {
-  const [expanded, setExpanded] = useState(false);
   const children = useAppSelector(selectChildTasks(task.id));
   const tasks = useAppSelector((state) => state.tasks.items);
   const running = useAppSelector((state) => state.timers.running);
@@ -33,138 +42,178 @@ export function TaskCard({ task, projectId, onDelete, onOpenTask }: TaskCardProp
 
   const timer = running[task.id];
   const isRunning = Boolean(timer);
+  const isPaused = isRunning && !timer?.startedAt;
   const currentSessionSeconds = liveElapsedSeconds(timer, now);
   const subtreeSeconds = computeLiveSubtreeSeconds(tasks, running, now, task.id);
+  const descendantCount = children.length > 0 ? getDescendantIds(tasks, task.id).length : 0;
+  const hasDescription = Boolean(task.description) && task.description !== "<p></p>";
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: taskDndId(task.id),
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
     transition,
-    opacity: isDragging ? 0.6 : 1,
-  };
+    isDragging,
+  } = useSortable({ id: taskDndId(task.id) });
 
   return (
-    <div ref={setNodeRef} style={style} className="task-card">
-      <div className="flex-row justify-between items-center">
-        <div
-          className="flex-row gap-2 items-center"
-          style={{ cursor: "grab", flex: 1 }}
-          {...listeners}
-          {...attributes}
-        >
-          {children.length > 0 ? (
-            <button
-              type="button"
-              className="btn btn-icon"
-              style={{ width: "1.5rem", height: "1.5rem", padding: 0 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setExpanded((prev) => !prev);
-              }}
-              title={expanded ? "Collapse" : "Expand"}
+    <Paper
+      ref={setNodeRef}
+      withBorder
+      radius="md"
+      p="sm"
+      className="task-card"
+      data-testid={`task-card-${task.id}`}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.6 : 1,
+      }}
+    >
+      <Stack gap="xs">
+        <Group gap={6} wrap="nowrap" align="flex-start">
+          {/* Drag handle: only this area starts a drag, so the buttons get their clicks. */}
+          <Group
+            ref={setActivatorNodeRef}
+            className="drag-handle"
+            gap={4}
+            wrap="nowrap"
+            align="flex-start"
+            style={{ flex: 1, minWidth: 0 }}
+            {...listeners}
+            {...attributes}
+          >
+            <Box c="gray.5" pt={2} style={{ flexShrink: 0, display: "flex" }}>
+              <GripVertical size={16} />
+            </Box>
+            <Text
+              fw={600}
+              size="sm"
+              lineClamp={2}
+              style={{ cursor: "pointer", wordBreak: "break-word" }}
+              onClick={() => onOpenTask(task.id)}
             >
-              {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-            </button>
-          ) : (
-            <span style={{ width: "1.5rem" }} />
-          )}
-          <span className="font-bold">{task.name}</span>
-          {isRunning && <span className="badge">Running</span>}
-        </div>
-        <div className="flex-row gap-2">
-          <Link
-            href={`/projects/${projectId}/tasks/new?parentId=${task.id}`}
-            className="btn btn-icon"
-            title="Add subtask"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Plus size={14} />
-          </Link>
-          <Link
-            href={`/projects/${projectId}/tasks/${task.id}/edit`}
-            className="btn btn-icon"
-            title="Edit task"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Pencil size={14} />
-          </Link>
-          <button
-            className="btn btn-icon"
-            title="Delete task"
-            style={{ color: "var(--danger-color)", borderColor: "var(--danger-color)" }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(task.id);
+              {task.name}
+            </Text>
+          </Group>
+
+          <Menu position="bottom-end" shadow="md" width={180}>
+            <Menu.Target>
+              <ActionIcon variant="subtle" color="gray" size="sm" aria-label="Task actions">
+                <EllipsisVertical size={16} />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item
+                leftSection={<Plus size={14} />}
+                component={Link}
+                href={`/projects/${projectId}/tasks/new?parentId=${task.id}`}
+              >
+                Add subtask
+              </Menu.Item>
+              <Menu.Item
+                leftSection={<Pencil size={14} />}
+                component={Link}
+                href={`/projects/${projectId}/tasks/${task.id}/edit`}
+              >
+                Edit
+              </Menu.Item>
+              <Menu.Divider />
+              <Menu.Item color="red" leftSection={<Trash2 size={14} />} onClick={() => onDelete(task)}>
+                Delete
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        </Group>
+
+        {hasDescription && (
+          <Box
+            className="rich-text"
+            fz="xs"
+            c="dimmed"
+            style={{
+              cursor: "pointer",
+              display: "-webkit-box",
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
             }}
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-      </div>
+            onClick={() => onOpenTask(task.id)}
+            dangerouslySetInnerHTML={{ __html: task.description }}
+          />
+        )}
 
-      <div
-        className="text-sm text-muted"
-        style={{ cursor: "pointer", minHeight: "1.5rem", padding: "0.25rem 0" }}
-        onClick={() => onOpenTask(task.id)}
-        dangerouslySetInnerHTML={{ __html: task.description || "No description" }}
-      />
+        {(children.length > 0 || isRunning) && (
+          <Group gap="xs">
+            {children.length > 0 && (
+              <Button
+                variant="light"
+                size="compact-xs"
+                leftSection={<ListTree size={12} />}
+                onClick={() => onOpenTask(task.id)}
+                data-testid={`expand-subtasks-${task.id}`}
+              >
+                {descendantCount} {descendantCount === 1 ? "subtask" : "subtasks"}
+              </Button>
+            )}
+            {isRunning && (
+              <Badge variant="light" color={isPaused ? "yellow" : "green"} size="sm">
+                {isPaused ? "Paused" : "Running"}
+              </Badge>
+            )}
+          </Group>
+        )}
 
-      <div
-        className="flex-row justify-between items-center"
-        style={{
-          borderTop: "1px solid #f1f5f9",
-          paddingTop: "0.75rem",
-          marginTop: "0.25rem",
-        }}
-      >
-        <div className="flex-col gap-1">
-          {isRunning && (
-            <span className="text-xs font-semibold" style={{ color: "var(--accent-color)" }}>
-              Session: {secondsToTimeString(currentSessionSeconds)}
-            </span>
-          )}
-          <span className="text-xs text-muted">
-            Total: {secondsToTimeString(subtreeSeconds)}
-          </span>
-        </div>
-        <div className="flex-row gap-2">
-          {!isRunning && (
-            <button
-              className="btn btn-icon"
-              title="Start timer"
-              onClick={() => start(task, projectId)}
-            >
-              <Play size={14} />
-            </button>
-          )}
-          {isRunning && timer?.startedAt && (
-            <button className="btn btn-icon" title="Pause timer" onClick={() => pause(task.id)}>
-              <Pause size={14} />
-            </button>
-          )}
-          {isRunning && !timer?.startedAt && (
-            <button className="btn btn-icon" title="Resume timer" onClick={() => resume(task.id)}>
-              <Play size={14} />
-            </button>
-          )}
-          {isRunning && (
-            <button className="btn btn-icon" title="Stop timer" onClick={() => stop(task.id)}>
-              <Square size={14} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {expanded && children.length > 0 && (
-        <div className="nested-tasks">
-          {children.map((child) => (
-            <TaskTreeNode key={child.id} task={child} onOpenTask={onOpenTask} />
-          ))}
-        </div>
-      )}
-    </div>
+        <Group
+          justify="space-between"
+          wrap="nowrap"
+          pt="xs"
+          style={{ borderTop: "1px solid var(--mantine-color-gray-2)" }}
+        >
+          <Stack gap={0}>
+            {isRunning && (
+              <Text size="xs" fw={600} c="blue.7" ff="monospace">
+                Session {secondsToTimeString(currentSessionSeconds)}
+              </Text>
+            )}
+            <Text size="xs" c="dimmed" ff="monospace">
+              Total {secondsToTimeString(subtreeSeconds)}
+            </Text>
+          </Stack>
+          <Group gap={6} wrap="nowrap">
+            {!isRunning && (
+              <Tooltip label="Start timer">
+                <ActionIcon aria-label="Start timer" onClick={() => start(task, projectId)}>
+                  <Play size={14} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+            {isRunning && !isPaused && (
+              <Tooltip label="Pause timer">
+                <ActionIcon aria-label="Pause timer" onClick={() => pause(task.id)}>
+                  <Pause size={14} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+            {isPaused && (
+              <Tooltip label="Resume timer">
+                <ActionIcon aria-label="Resume timer" onClick={() => resume(task.id)}>
+                  <Play size={14} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+            {isRunning && (
+              <Tooltip label="Stop timer">
+                <ActionIcon aria-label="Stop timer" color="red" onClick={() => stop(task.id)}>
+                  <Square size={14} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </Group>
+        </Group>
+      </Stack>
+    </Paper>
   );
 }

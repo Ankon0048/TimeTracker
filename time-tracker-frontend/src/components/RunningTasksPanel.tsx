@@ -1,7 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import {
+  ActionIcon,
+  Group,
+  Indicator,
+  Popover,
+  Stack,
+  Text,
+  Tooltip,
+  UnstyledButton,
+} from "@mantine/core";
 import { Bell, Square } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
 import { liveElapsedSeconds, selectRunningTimersList } from "@/features/timers/timersSlice";
@@ -10,105 +20,64 @@ import { useNowTick } from "@/lib/useNowTick";
 import { secondsToTimeString } from "@/lib/time";
 
 export function RunningTasksPanel() {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [opened, setOpened] = useState(false);
   const timers = useAppSelector(selectRunningTimersList);
   const { stop } = useTaskTimerActions();
   const now = useNowTick();
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   return (
-    <div ref={containerRef} style={{ position: "relative" }}>
-      <button
-        type="button"
-        className="btn btn-icon"
-        onClick={() => setOpen((prev) => !prev)}
-        title="Running tasks"
-        style={{ position: "relative" }}
-      >
-        <Bell size={18} />
-        {timers.length > 0 && (
-          <span
-            style={{
-              position: "absolute",
-              top: "-4px",
-              right: "-4px",
-              minWidth: "18px",
-              height: "18px",
-              borderRadius: "999px",
-              backgroundColor: "var(--danger-color)",
-              color: "white",
-              fontSize: "0.6875rem",
-              fontWeight: 700,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "0 4px",
-            }}
-          >
-            {timers.length}
-          </span>
-        )}
-      </button>
-
-      {open && (
-        <div
-          className="card flex-col gap-2"
-          style={{
-            position: "absolute",
-            top: "calc(100% + 0.5rem)",
-            right: 0,
-            width: "340px",
-            maxHeight: "420px",
-            overflowY: "auto",
-            zIndex: 30,
-          }}
+    <Popover opened={opened} onChange={setOpened} position="bottom-end" width={340} shadow="md" withArrow>
+      <Popover.Target>
+        <Indicator
+          label={timers.length}
+          size={18}
+          color="red"
+          disabled={timers.length === 0}
+          offset={4}
         >
-          <h3 style={{ margin: 0 }}>Running Tasks</h3>
+          <ActionIcon
+            size="lg"
+            aria-label="Running tasks"
+            onClick={() => setOpened((o) => !o)}
+          >
+            <Bell size={18} />
+          </ActionIcon>
+        </Indicator>
+      </Popover.Target>
+      <Popover.Dropdown>
+        <Stack gap="sm">
+          <Text fw={700}>Running tasks</Text>
           {timers.length === 0 ? (
-            <p className="text-muted text-sm">No tasks are currently running.</p>
+            <Text size="sm" c="dimmed">
+              No tasks are currently running.
+            </Text>
           ) : (
             timers.map((timer) => (
-              <div
-                key={timer.taskId}
-                className="flex-row justify-between items-center"
-                style={{
-                  padding: "0.5rem 0",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                <Link
+              <Group key={timer.taskId} justify="space-between" wrap="nowrap" gap="sm">
+                <UnstyledButton
+                  component={Link}
                   href={`/projects/${timer.projectId}`}
-                  className="flex-col"
-                  onClick={() => setOpen(false)}
+                  onClick={() => setOpened(false)}
+                  style={{ flex: 1, minWidth: 0 }}
                 >
-                  <span className="font-medium text-sm">{timer.taskName}</span>
-                  <span className="text-xs" style={{ color: "var(--accent-color)" }}>
+                  <Text size="sm" fw={500} truncate>
+                    {timer.taskName}
+                  </Text>
+                  <Text size="xs" c="blue.7" ff="monospace">
                     {secondsToTimeString(liveElapsedSeconds(timer, now))}
                     {!timer.startedAt && " (paused)"}
-                  </span>
-                </Link>
-                <button
-                  className="btn btn-icon"
-                  title="Stop"
-                  onClick={() => stop(timer.taskId)}
-                >
-                  <Square size={14} />
-                </button>
-              </div>
+                  </Text>
+                </UnstyledButton>
+                <Tooltip label="Stop timer">
+                  <ActionIcon color="red" aria-label="Stop timer" onClick={() => stop(timer.taskId)}>
+                    <Square size={14} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
             ))
           )}
-        </div>
-      )}
-    </div>
+        </Stack>
+      </Popover.Dropdown>
+    </Popover>
   );
 }

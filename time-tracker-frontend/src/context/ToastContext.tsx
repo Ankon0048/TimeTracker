@@ -1,13 +1,8 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext } from "react";
 import type { ReactNode } from "react";
-
-interface Toast {
-  id: number;
-  message: string;
-  variant: "info" | "error";
-}
+import { notifications } from "@mantine/notifications";
 
 interface ToastContextType {
   showToast: (message: string, variant?: "info" | "error") => void;
@@ -15,36 +10,21 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
+// Thin wrapper over Mantine notifications so callers keep a simple showToast API.
 export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const nextId = useRef(0);
-
   const showToast = useCallback(
     (message: string, variant: "info" | "error" = "info") => {
-      const id = nextId.current++;
-      setToasts((prev) => [...prev, { id, message, variant }]);
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
-      }, 3500);
+      notifications.show({
+        message,
+        color: variant === "error" ? "red" : "blue",
+        title: variant === "error" ? "Something went wrong" : undefined,
+        autoClose: 3500,
+      });
     },
     []
   );
 
-  return (
-    <ToastContext.Provider value={{ showToast }}>
-      {children}
-      <div className="toast-container">
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={`toast ${toast.variant === "error" ? "toast-error" : ""}`}
-          >
-            {toast.message}
-          </div>
-        ))}
-      </div>
-    </ToastContext.Provider>
-  );
+  return <ToastContext.Provider value={{ showToast }}>{children}</ToastContext.Provider>;
 };
 
 export const useToast = () => {

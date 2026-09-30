@@ -1,10 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import { DndContext } from "@dnd-kit/core";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import {
+  Box,
+  Button,
+  Container,
+  Group,
+  Paper,
+  Skeleton,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+} from "@mantine/core";
+import { modals } from "@mantine/modals";
 import { ArrowLeft, Pencil, Plus } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { fetchProjects } from "@/features/projects/projectsSlice";
@@ -17,17 +37,17 @@ import {
 import { createState, fetchStates } from "@/features/states/statesSlice";
 import { BoardColumn } from "@/components/BoardColumn";
 import { RunningTaskBanner } from "@/components/RunningTaskBanner";
-import { TaskDetailModal } from "@/components/TaskDetailModal";
+import { TaskExplorerModal } from "@/components/TaskExplorerModal";
 import { useTaskTimerActions } from "@/lib/useTaskTimer";
 import { useErrorToast } from "@/lib/useErrorToast";
-import { CardSkeletonList } from "@/components/Skeleton";
+import { getDescendantIds } from "@/lib/taskHierarchy";
 import { parseDndId } from "@/lib/dndIds";
+import type { Task } from "@/lib/types";
 
 export default function ProjectBoardPage() {
   const { id } = useParams<{ id: string }>();
   const projectId = Number(id);
   const dispatch = useAppDispatch();
-  const router = useRouter();
 
   const { items: projects } = useAppSelector((state) => state.projects);
   const project = projects.find((p) => p.id === projectId);
@@ -47,6 +67,12 @@ export default function ProjectBoardPage() {
   const [newStateName, setNewStateName] = useState("");
   const [openTaskId, setOpenTaskId] = useState<number | null>(null);
 
+  // A small drag distance means a plain click on a card never turns into a drag.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   useEffect(() => {
     if (!project) {
       dispatch(fetchProjects());
@@ -64,10 +90,22 @@ export default function ProjectBoardPage() {
     setNewStateName("");
   };
 
-  const handleDeleteTask = (taskId: number) => {
-    if (window.confirm("Are you sure you want to delete this task?")) {
-      dispatch(deleteTask(taskId));
-    }
+  const handleDeleteTask = (task: Task) => {
+    const descendantCount = getDescendantIds(allTasks, task.id).length;
+    modals.openConfirmModal({
+      title: "Delete task",
+      children: (
+        <Text size="sm">
+          Delete <b>{task.name}</b>
+          {descendantCount > 0 &&
+            ` and its ${descendantCount} ${descendantCount === 1 ? "subtask" : "subtasks"}`}
+          ? This cannot be undone.
+        </Text>
+      ),
+      labels: { confirm: "Delete", cancel: "Cancel" },
+      confirmProps: { color: "red" },
+      onConfirm: () => dispatch(deleteTask(task.id)),
+    });
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -126,91 +164,112 @@ export default function ProjectBoardPage() {
   };
 
   return (
-    <div className="container-fluid">
-      <button className="btn" style={{ alignSelf: "flex-start" }} onClick={() => router.push("/projects")}>
-        <ArrowLeft size={16} />
-        <span>Back to Projects</span>
-      </button>
+    <Container fluid px={{ base: "md", sm: "xl" }} py="xl">
+      <Stack gap="xl">
+        <Box>
+          <Button
+            component={Link}
+            href="/projects"
+            variant="subtle"
+            color="gray"
+            leftSection={<ArrowLeft size={16} />}
+            px="xs"
+          >
+            Back to projects
+          </Button>
+        </Box>
 
-      {project ? (
-        <div className="flex-row justify-between items-center" style={{ flexWrap: "wrap", gap: "1.5rem" }}>
-          <div className="flex-col gap-2">
-            <h1 className="text-3xl font-bold">{project.name}</h1>
-            <div className="text-muted" dangerouslySetInnerHTML={{ __html: project.description || "" }} />
-          </div>
-          <div className="flex-row gap-3">
-            <Link href={`/projects/${projectId}/tasks/new`} className="btn btn-primary">
-              <Plus size={16} />
-              <span>New Task</span>
-            </Link>
-            <button className="btn" onClick={() => router.push(`/projects/${projectId}/edit`)}>
-              <Pencil size={16} />
-              <span>Edit</span>
-            </button>
-          </div>
-        </div>
-      ) : (
-        <p className="text-muted">Loading project…</p>
-      )}
+        {project ? (
+          <Group justify="space-between" align="flex-start" gap="lg">
+            <Stack gap={6} style={{ flex: 1, minWidth: 240 }}>
+              <Title order={1} style={{ wordBreak: "break-word" }}>
+                {project.name}
+              </Title>
+              {project.description && (
+                <Box
+                  className="rich-text"
+                  c="dimmed"
+                  dangerouslySetInnerHTML={{ __html: project.description }}
+                />
+              )}
+            </Stack>
+            <Group gap="sm">
+              <Button variant="default" component={Link} href={`/projects/${projectId}/edit`} leftSection={<Pencil size={16} />}>
+                Edit project
+              </Button>
+              <Button component={Link} href={`/projects/${projectId}/tasks/new`} leftSection={<Plus size={16} />}>
+                New task
+              </Button>
+            </Group>
+          </Group>
+        ) : (
+          <Stack gap="xs">
+            <Skeleton h={36} w={280} />
+            <Skeleton h={16} w={200} />
+          </Stack>
+        )}
 
-      <form
-        className="flex-row gap-4 items-center card"
-        onSubmit={handleAddState}
-        style={{ padding: "1.25rem 1.75rem", alignSelf: "flex-start", flexWrap: "wrap" }}
-      >
-        <label className="font-semibold text-sm" style={{ whiteSpace: "nowrap" }}>
-          Add State
-        </label>
-        <input
-          type="text"
-          className="input"
-          value={newStateName}
-          onChange={(e) => setNewStateName(e.target.value)}
-          placeholder="e.g. Code Review"
-          style={{ width: "260px" }}
-        />
-        <button type="submit" className="btn btn-primary" style={{ whiteSpace: "nowrap" }}>
-          Add State
-        </button>
-      </form>
-
-      <RunningTaskBanner projectId={projectId} onOpenTask={setOpenTaskId} />
-
-      {(statesLoading && states.length === 0) || (tasksLoading && topLevelTasks.length === 0) ? (
-        <CardSkeletonList />
-      ) : states.length === 0 ? (
-        <div className="card">
-          <p className="text-muted">
-            No states yet. Add a state above (e.g. Pending, Ongoing, Completed) to start the board.
-          </p>
-        </div>
-      ) : (
-        <DndContext onDragEnd={handleDragEnd}>
-          <div className="board">
-            {states.map((state) => (
-              <BoardColumn
-                key={state.id}
-                state={state}
-                tasks={topLevelTasks.filter((t) => t.stateID === state.id)}
-                projectId={projectId}
-                onDelete={handleDeleteTask}
-                onOpenTask={setOpenTaskId}
+        <Paper withBorder radius="md" p="md" style={{ alignSelf: "flex-start", maxWidth: "100%" }}>
+          <form onSubmit={handleAddState}>
+            <Group gap="sm" align="flex-end">
+              <TextInput
+                label="Add a board column"
+                placeholder="e.g. Code Review"
+                value={newStateName}
+                onChange={(e) => setNewStateName(e.currentTarget.value)}
+                w={260}
+                maw="100%"
               />
+              <Button type="submit" variant="light" disabled={!newStateName.trim()} leftSection={<Plus size={16} />}>
+                Add column
+              </Button>
+            </Group>
+          </form>
+        </Paper>
+
+        <RunningTaskBanner projectId={projectId} onOpenTask={setOpenTaskId} />
+
+        {(statesLoading && states.length === 0) || (tasksLoading && topLevelTasks.length === 0) ? (
+          <Group align="flex-start" gap="lg" wrap="nowrap" style={{ overflow: "hidden" }}>
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} h={260} w={340} radius="lg" style={{ flexShrink: 0 }} />
             ))}
-          </div>
-        </DndContext>
-      )}
+          </Group>
+        ) : states.length === 0 ? (
+          <Paper withBorder radius="md" p="xl">
+            <Text c="dimmed">
+              No columns yet. Add one above (e.g. Pending, Ongoing, Completed), or create a task and a
+              &quot;Pending&quot; column will be added for you.
+            </Text>
+          </Paper>
+        ) : (
+          <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+            <div className="board">
+              {states.map((state) => (
+                <BoardColumn
+                  key={state.id}
+                  state={state}
+                  tasks={topLevelTasks.filter((t) => t.stateID === state.id)}
+                  projectId={projectId}
+                  onDelete={handleDeleteTask}
+                  onOpenTask={setOpenTaskId}
+                />
+              ))}
+            </div>
+          </DndContext>
+        )}
 
-      {!tasksLoading && topLevelTasks.length === 0 && states.length > 0 && (
-        <p className="text-muted">No tasks yet for this project.</p>
-      )}
+        {!tasksLoading && topLevelTasks.length === 0 && states.length > 0 && (
+          <Text c="dimmed">No tasks yet for this project.</Text>
+        )}
+      </Stack>
 
-      <TaskDetailModal
+      <TaskExplorerModal
         key={openTaskId ?? "none"}
         taskId={openTaskId}
         projectId={projectId}
         onClose={() => setOpenTaskId(null)}
       />
-    </div>
+    </Container>
   );
 }

@@ -155,21 +155,36 @@ namespace timeTracker.Services.Implementation
             return tasks.OrderBy(t => t.Order).Select(MapToDto);
         }
 
-        public async Task<TaskDto?> UpdateTaskAsync(int id, TaskDto dto)
+        public async Task<TaskDto?> UpdateTaskAsync(int id, UpdateTaskDto dto)
         {
             var task = await _context.Tasks.FindAsync(id);
             if (task == null) return null;
 
-            if (dto.ParentID.HasValue)
+            // An explicit null parent moves the task to the top level; an omitted
+            // parentID leaves it where it is.
+            if (dto.ParentIDSpecified && dto.ParentID != task.ParentID)
+            {
+                if (dto.ParentID.HasValue)
+                {
+                    await EnsureValidParentAsync(task.ID, dto.ParentID.Value);
+                }
+
                 task.ParentID = dto.ParentID;
+                // Append to the end of its new sibling group.
+                task.Order = (await _context.Tasks
+                    .Where(t => t.ParentID == dto.ParentID && t.ID != task.ID)
+                    .Select(t => (int?)t.Order)
+                    .MaxAsync() ?? -1) + 1;
+            }
 
             if (!string.IsNullOrEmpty(dto.Name))
                 task.Name = dto.Name;
 
-            task.Description = dto.Description;
+            if (dto.Description != null)
+                task.Description = dto.Description;
 
-            if (dto.Start != default)
-                task.Start = dto.Start;
+            if (dto.Start.HasValue && dto.Start.Value != default)
+                task.Start = dto.Start.Value;
 
             if (dto.End.HasValue)
                 task.End = dto.End;
@@ -177,11 +192,33 @@ namespace timeTracker.Services.Implementation
             if (dto.TimeTaken.HasValue)
                 task.TimeTaken = dto.TimeTaken;
 
-            if (dto.StateID != 0)
-                task.StateID = dto.StateID;
+            if (dto.StateID.HasValue && dto.StateID.Value != 0)
+                task.StateID = dto.StateID.Value;
 
             await _context.SaveChangesAsync();
             return MapToDto(task);
+        }
+
+        // A task can't be its own parent or be nested under one of its own subtasks.
+        private async Task EnsureValidParentAsync(int taskId, int parentId)
+        {
+            if (parentId == taskId)
+                throw new ArgumentException("A task cannot be its own parent.");
+
+            var parent = await _context.Tasks.FindAsync(parentId);
+            if (parent == null)
+                throw new ArgumentException("Parent task not found.");
+
+            var ancestorId = parent.ParentID;
+            while (ancestorId.HasValue)
+            {
+                if (ancestorId.Value == taskId)
+                    throw new ArgumentException("A task cannot be moved under one of its own subtasks.");
+                ancestorId = await _context.Tasks
+                    .Where(t => t.ID == ancestorId.Value)
+                    .Select(t => t.ParentID)
+                    .FirstOrDefaultAsync();
+            }
         }
 
         private static TaskDto MapToDto(TaskEntity task)

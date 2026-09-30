@@ -6,6 +6,7 @@ import { ProjectForm } from "@/components/ProjectForm";
 import { useAppDispatch } from "@/lib/hooks";
 import { createProject } from "@/features/projects/projectsSlice";
 import type { CreateProjectPayload } from "@/lib/types";
+import { Container, Stack, Title } from "@mantine/core";
 
 export default function NewProjectPage() {
   const dispatch = useAppDispatch();
@@ -26,15 +27,17 @@ export default function NewProjectPage() {
   };
 
   return (
-    <div className="container flex-col gap-6" style={{ maxWidth: "700px" }}>
-      <h1>New Project</h1>
-      <ProjectForm
-        submitLabel="Create Project"
-        submitting={submitting}
-        error={error}
-        onSubmit={handleSubmit}
-        onCancel={() => router.push("/projects")}
-      />
-    </div>
+    <Container size={760} py="xl">
+      <Stack gap="lg">
+        <Title order={1}>New Project</Title>
+        <ProjectForm
+          submitLabel="Create Project"
+          submitting={submitting}
+          error={error}
+          onSubmit={handleSubmit}
+          onCancel={() => router.push("/projects")}
+        />
+      </Stack>
+    </Container>
   );
 }

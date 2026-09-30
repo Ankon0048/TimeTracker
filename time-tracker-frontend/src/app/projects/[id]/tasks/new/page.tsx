@@ -6,6 +6,7 @@ import { TaskForm } from "@/components/TaskForm";
 import type { TaskFormValues } from "@/components/TaskForm";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { createTask, fetchProjectTasks } from "@/features/tasks/tasksSlice";
+import { Container, Stack, Title } from "@mantine/core";
 
 export default function NewTaskPage() {
   const { id } = useParams<{ id: string }>();
@@ -49,19 +50,21 @@ export default function NewTaskPage() {
   };
 
   return (
-    <div className="container flex-col gap-6" style={{ maxWidth: "700px" }}>
-      <h1>New Task</h1>
-      <TaskForm
-        parentOptions={tasks}
-        initialValues={
-          parentIdParam ? { parentID: Number(parentIdParam) } : undefined
-        }
-        submitLabel="Create Task"
-        submitting={submitting}
-        error={error}
-        onSubmit={handleSubmit}
-        onCancel={() => router.push(`/projects/${projectId}`)}
-      />
-    </div>
+    <Container size={760} py="xl">
+      <Stack gap="lg">
+        <Title order={1}>New Task</Title>
+        <TaskForm
+          parentOptions={tasks}
+          initialValues={
+            parentIdParam ? { parentID: Number(parentIdParam) } : undefined
+          }
+          submitLabel="Create Task"
+          submitting={submitting}
+          error={error}
+          onSubmit={handleSubmit}
+          onCancel={() => router.push(`/projects/${projectId}`)}
+        />
+      </Stack>
+    </Container>
   );
 }

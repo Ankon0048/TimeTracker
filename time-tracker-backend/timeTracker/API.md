@@ -130,6 +130,8 @@ Store and return raw HTML — do **not** strip tags server-side.
   "description": "<p>Updated with <strong>bold</strong> and <em>italic</em>.</p>"
 }
 ```
+- **Parent:** omit `parentID` to keep the current parent. Send `"parentID": null` to move the task to the top level, or a task id to move it under that task (it's appended after its new siblings).
+- **Response (400 Bad Request):** when `parentID` is the task itself, one of its own subtasks, or doesn't exist.
 
 ### Delete Task
 - **Endpoint:** `DELETE /Task/{id}`

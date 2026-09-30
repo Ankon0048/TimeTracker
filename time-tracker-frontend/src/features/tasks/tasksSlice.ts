@@ -1,4 +1,5 @@
 import { createAsyncThunk, createSelector, createSlice } from "@reduxjs/toolkit";
+import { isAxiosError } from "axios";
 import { tasksApi } from "@/lib/api/tasks";
 import type {
   CreateTaskPayload,
@@ -7,6 +8,7 @@ import type {
   UpdateTaskPayload,
 } from "@/lib/types";
 import type { RootState } from "@/lib/store";
+import { getDescendantIds } from "@/lib/taskHierarchy";
 
 interface TasksState {
   items: Task[];
@@ -20,8 +22,13 @@ const initialState: TasksState = {
   error: null,
 };
 
-const errorMessage = (err: unknown, fallback: string): string =>
-  err instanceof Error ? err.message : fallback;
+// Prefer the API's own message (e.g. a 400 explaining why a parent is invalid).
+const errorMessage = (err: unknown, fallback: string): string => {
+  if (isAxiosError(err) && typeof err.response?.data === "string" && err.response.data) {
+    return err.response.data;
+  }
+  return err instanceof Error ? err.message : fallback;
+};
 
 // Fetches every task belonging to a project: its parent (top-level) tasks
 // plus each one's nested subtasks, recursively, as a single flat list.
@@ -153,7 +160,12 @@ const tasksSlice = createSlice({
       })
       .addCase(deleteTask.fulfilled, (state, action) => {
         state.loading = false;
-        state.items = state.items.filter((task) => task.id !== action.payload);
+        // The API deletes the whole subtree, so drop the descendants too.
+        const removed = new Set([
+          action.payload,
+          ...getDescendantIds(state.items, action.payload),
+        ]);
+        state.items = state.items.filter((task) => !removed.has(task.id));
       })
       .addCase(deleteTask.rejected, (state, action) => {
         state.loading = false;

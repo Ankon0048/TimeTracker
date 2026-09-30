@@ -2,6 +2,7 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { Badge, Text } from "@mantine/core";
 import type { State, Task } from "@/lib/types";
 import { TaskCard } from "@/components/TaskCard";
 import { columnDndId, taskDndId } from "@/lib/dndIds";
@@ -10,7 +11,7 @@ interface BoardColumnProps {
   state: State;
   tasks: Task[];
   projectId: number;
-  onDelete: (taskId: number) => void;
+  onDelete: (task: Task) => void;
   onOpenTask: (taskId: number) => void;
 }
 
@@ -18,18 +19,16 @@ export function BoardColumn({ state, tasks, projectId, onDelete, onOpenTask }: B
   const { setNodeRef, isOver } = useDroppable({ id: columnDndId(state.id) });
 
   return (
-    <div className="column">
-      <div className="column-header">
-        {state.name} <span className="text-muted text-sm">({tasks.length})</span>
+    <div className="board-column">
+      <div className="board-column-header">
+        <Text fw={600} size="sm" truncate>
+          {state.name}
+        </Text>
+        <Badge variant="default" size="sm" radius="sm">
+          {tasks.length}
+        </Badge>
       </div>
-      <div
-        ref={setNodeRef}
-        className="column-content"
-        style={{
-          backgroundColor: isOver ? "#e5e7eb" : "transparent",
-          transition: "background-color 0.2s ease",
-        }}
-      >
+      <div ref={setNodeRef} className="board-column-content" data-over={isOver}>
         <SortableContext
           items={tasks.map((t) => taskDndId(t.id))}
           strategy={verticalListSortingStrategy}
@@ -44,6 +43,11 @@ export function BoardColumn({ state, tasks, projectId, onDelete, onOpenTask }: B
             />
           ))}
         </SortableContext>
+        {tasks.length === 0 && (
+          <Text size="xs" c="dimmed" ta="center" py="lg">
+            Drop tasks here
+          </Text>
+        )}
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Placeholder from "@tiptap/extension-placeholder";
+import { ActionIcon, Tooltip } from "@mantine/core";
 import {
   Bold,
   Italic,
@@ -34,26 +35,18 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   title,
   children,
 }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    title={title}
-    style={{
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      width: "28px",
-      height: "28px",
-      border: "none",
-      borderRadius: "4px",
-      background: active ? "var(--accent-color, #6366f1)" : "transparent",
-      color: active ? "#fff" : "var(--text-primary)",
-      cursor: "pointer",
-      transition: "background 0.15s",
-    }}
-  >
-    {children}
-  </button>
+  <Tooltip label={title}>
+    <ActionIcon
+      variant={active ? "filled" : "subtle"}
+      color={active ? "blue" : "gray"}
+      size="md"
+      onClick={onClick}
+      aria-label={title}
+      aria-pressed={active}
+    >
+      {children}
+    </ActionIcon>
+  </Tooltip>
 );
 
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({
@@ -90,20 +83,21 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   return (
     <div
       style={{
-        border: "1px solid var(--border-color, #e5e7eb)",
-        borderRadius: "8px",
+        border: "1px solid var(--mantine-color-gray-4)",
+        borderRadius: "var(--mantine-radius-md)",
         overflow: "hidden",
-        background: disabled ? "#f3f4f6" : "var(--bg-secondary, #fff)",
+        background: disabled ? "var(--mantine-color-gray-1)" : "var(--mantine-color-body)",
       }}
     >
       {!disabled && (
         <div
           style={{
             display: "flex",
-            gap: "2px",
-            padding: "4px 6px",
-            borderBottom: "1px solid var(--border-color, #e5e7eb)",
-            background: "var(--bg-primary, #f9fafb)",
+            alignItems: "center",
+            gap: "4px",
+            padding: "6px 8px",
+            borderBottom: "1px solid var(--mantine-color-gray-3)",
+            background: "var(--mantine-color-gray-0)",
           }}
         >
           <ToolbarButton
@@ -137,7 +131,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <div
             style={{
               width: "1px",
-              background: "var(--border-color, #e5e7eb)",
+              alignSelf: "stretch",
+              background: "var(--mantine-color-gray-3)",
               margin: "2px 4px",
             }}
           />
@@ -164,7 +159,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           min-height: 100px;
           outline: none;
           font-size: 0.875rem;
-          color: var(--text-primary);
+          color: var(--mantine-color-text);
           line-height: 1.6;
         }
         .tiptap-editor .tiptap p { margin: 0 0 0.25rem; }

@@ -37,11 +37,18 @@ namespace timeTracker.Controllers
         }
 
         [HttpPatch("{id}")]
-        public async Task<ActionResult<TaskDto>> UpdateTask(int id, TaskDto dto)
+        public async Task<ActionResult<TaskDto>> UpdateTask(int id, UpdateTaskDto dto)
         {
-            var result = await _taskService.UpdateTaskAsync(id, dto);
-            if (result == null) return NotFound();
-            return Ok(result);
+            try
+            {
+                var result = await _taskService.UpdateTaskAsync(id, dto);
+                if (result == null) return NotFound();
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpDelete("{id}")]

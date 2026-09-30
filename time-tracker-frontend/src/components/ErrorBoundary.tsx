@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Alert, Button, Container, Stack, Text } from "@mantine/core";
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -27,15 +28,16 @@ export class ErrorBoundary extends React.Component<
   render() {
     if (this.state.error) {
       return (
-        <div className="container">
-          <div className="card flex-col gap-4">
-            <h2>Something went wrong</h2>
-            <p className="text-muted">{this.state.error.message}</p>
-            <button className="btn btn-primary" onClick={() => this.setState({ error: null })}>
-              Try again
-            </button>
-          </div>
-        </div>
+        <Container size="sm" py="xl">
+          <Alert color="red" variant="light" title="Something went wrong">
+            <Stack gap="md" align="flex-start">
+              <Text size="sm">{this.state.error.message}</Text>
+              <Button color="red" onClick={() => this.setState({ error: null })}>
+                Try again
+              </Button>
+            </Stack>
+          </Alert>
+        </Container>
       );
     }
     return this.props.children;

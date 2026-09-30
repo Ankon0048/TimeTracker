@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ColorSchemeScript, mantineHtmlProps } from "@mantine/core";
 import { Providers } from "./providers";
 import { AppHeader } from "@/components/AppHeader";
+// globals.css declares the cascade-layer order, so it must load before Mantine's layered CSS.
 import "./globals.css";
+import "@mantine/core/styles.layer.css";
+import "@mantine/notifications/styles.layer.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,13 +25,18 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="min-h-screen flex flex-col bg-background text-foreground">
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable}`}
+      {...mantineHtmlProps}
+    >
+      <head>
+        <ColorSchemeScript defaultColorScheme="light" />
+      </head>
+      <body className="min-h-screen flex flex-col">
         <Providers>
           <AppHeader />
-          <main className="flex-1 w-full pb-16">
-            {children}
-          </main>
+          <main className="flex-1 w-full pb-16">{children}</main>
         </Providers>
       </body>
     </html>
