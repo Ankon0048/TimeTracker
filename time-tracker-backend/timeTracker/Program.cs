@@ -41,6 +41,13 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// Apply pending EF Core migrations on startup (creates the schema in a fresh database, e.g. in Docker)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
