@@ -35,6 +35,7 @@ import {
   selectTopLevelTasks,
 } from "@/features/tasks/tasksSlice";
 import { createState, fetchStates } from "@/features/states/statesSlice";
+import { closeTask, openTask } from "@/features/ui/uiSlice";
 import { BoardColumn } from "@/components/BoardColumn";
 import { RunningTaskBanner } from "@/components/RunningTaskBanner";
 import { TaskExplorerModal } from "@/components/TaskExplorerModal";
@@ -65,7 +66,14 @@ export default function ProjectBoardPage() {
   const { start, stop, ongoingStateId } = useTaskTimerActions();
 
   const [newStateName, setNewStateName] = useState("");
-  const [openTaskId, setOpenTaskId] = useState<number | null>(null);
+
+  // The open popup is in the store so the header's running-tasks panel can
+  // open it too; only show it when it belongs to this project.
+  const openTaskRequest = useAppSelector((state) => state.ui.openTask);
+  const openTaskId =
+    openTaskRequest?.projectId === projectId ? openTaskRequest.taskId : null;
+  const setOpenTaskId = (taskId: number | null) =>
+    dispatch(taskId === null ? closeTask() : openTask({ taskId, projectId }));
 
   // A small drag distance means a plain click on a card never turns into a drag.
   const sensors = useSensors(

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ActionIcon,
   Group,
@@ -12,9 +12,11 @@ import {
   Tooltip,
   UnstyledButton,
 } from "@mantine/core";
-import { Bell, Square } from "lucide-react";
-import { useAppSelector } from "@/lib/hooks";
+import { Bell, Pause, Play, Square } from "lucide-react";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { liveElapsedSeconds, selectRunningTimersList } from "@/features/timers/timersSlice";
+import type { RunningTimer } from "@/features/timers/timersSlice";
+import { openTask } from "@/features/ui/uiSlice";
 import { useTaskTimerActions } from "@/lib/useTaskTimer";
 import { useNowTick } from "@/lib/useNowTick";
 import { secondsToTimeString } from "@/lib/time";
@@ -22,8 +24,20 @@ import { secondsToTimeString } from "@/lib/time";
 export function RunningTasksPanel() {
   const [opened, setOpened] = useState(false);
   const timers = useAppSelector(selectRunningTimersList);
-  const { stop } = useTaskTimerActions();
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  const pathname = usePathname();
+  const { pause, resume, stop } = useTaskTimerActions();
   const now = useNowTick();
+
+  // The task popup lives on the project board (it needs that project's
+  // tasks), so go there first when viewing another page.
+  const handleOpen = (timer: RunningTimer) => {
+    setOpened(false);
+    dispatch(openTask({ taskId: timer.taskId, projectId: timer.projectId }));
+    const boardPath = `/projects/${timer.projectId}`;
+    if (pathname !== boardPath) router.push(boardPath);
+  };
 
   return (
     <Popover opened={opened} onChange={setOpened} position="bottom-end" width={340} shadow="md" withArrow>
@@ -52,29 +66,42 @@ export function RunningTasksPanel() {
               No tasks are currently running.
             </Text>
           ) : (
-            timers.map((timer) => (
-              <Group key={timer.taskId} justify="space-between" wrap="nowrap" gap="sm">
-                <UnstyledButton
-                  component={Link}
-                  href={`/projects/${timer.projectId}`}
-                  onClick={() => setOpened(false)}
-                  style={{ flex: 1, minWidth: 0 }}
-                >
-                  <Text size="sm" fw={500} truncate>
-                    {timer.taskName}
-                  </Text>
-                  <Text size="xs" c="blue.7" ff="monospace">
-                    {secondsToTimeString(liveElapsedSeconds(timer, now))}
-                    {!timer.startedAt && " (paused)"}
-                  </Text>
-                </UnstyledButton>
-                <Tooltip label="Stop timer">
-                  <ActionIcon color="red" aria-label="Stop timer" onClick={() => stop(timer.taskId)}>
-                    <Square size={14} />
-                  </ActionIcon>
-                </Tooltip>
-              </Group>
-            ))
+            timers.map((timer) => {
+              const paused = !timer.startedAt;
+              return (
+                <Group key={timer.taskId} justify="space-between" wrap="nowrap" gap="sm">
+                  <UnstyledButton onClick={() => handleOpen(timer)} style={{ flex: 1, minWidth: 0 }}>
+                    <Text size="sm" fw={500} truncate>
+                      {timer.taskName}
+                    </Text>
+                    <Text size="xs" c={paused ? "yellow.8" : "blue.7"} ff="monospace">
+                      {secondsToTimeString(liveElapsedSeconds(timer, now))}
+                      {paused && " (paused)"}
+                    </Text>
+                  </UnstyledButton>
+                  <Group gap={6} wrap="nowrap">
+                    {paused ? (
+                      <Tooltip label="Resume timer">
+                        <ActionIcon aria-label="Resume timer" onClick={() => resume(timer.taskId)}>
+                          <Play size={14} />
+                        </ActionIcon>
+                      </Tooltip>
+                    ) : (
+                      <Tooltip label="Pause timer">
+                        <ActionIcon aria-label="Pause timer" onClick={() => pause(timer.taskId)}>
+                          <Pause size={14} />
+                        </ActionIcon>
+                      </Tooltip>
+                    )}
+                    <Tooltip label="Stop timer">
+                      <ActionIcon color="red" aria-label="Stop timer" onClick={() => stop(timer.taskId)}>
+                        <Square size={14} />
+                      </ActionIcon>
+                    </Tooltip>
+                  </Group>
+                </Group>
+              );
+            })
           )}
         </Stack>
       </Popover.Dropdown>

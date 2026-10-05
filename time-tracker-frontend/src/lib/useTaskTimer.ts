@@ -10,6 +10,8 @@ import {
   liveElapsedSeconds,
 } from "@/features/timers/timersSlice";
 import { updateTask } from "@/features/tasks/tasksSlice";
+import { tasksApi } from "@/lib/api/tasks";
+import { requestIdleTrackingPermissions } from "@/lib/idleDetection";
 import { findConflictingRunningRelative } from "@/lib/taskHierarchy";
 import { secondsToTimeString, timeStringToSeconds } from "@/lib/time";
 import type { Task } from "@/lib/types";
@@ -47,6 +49,8 @@ export function useTaskTimerActions() {
       return false;
     }
 
+    // Starting a timer is a user gesture, which the permission prompts need.
+    requestIdleTrackingPermissions();
     dispatch(startTimer({ taskId: task.id, taskName: task.name, projectId }));
     if (syncState && ongoingStateId && task.stateID !== ongoingStateId) {
       dispatch(updateTask({ id: task.id, payload: { stateID: ongoingStateId } }));
@@ -55,16 +59,29 @@ export function useTaskTimerActions() {
   };
 
   const pause = (taskId: number) => dispatch(pauseTimer(taskId));
-  const resume = (taskId: number) => dispatch(resumeTimer(taskId));
+  const resume = (taskId: number) => {
+    requestIdleTrackingPermissions();
+    dispatch(resumeTimer(taskId));
+  };
 
-  const stop = (taskId: number, opts: { syncState?: boolean } = {}) => {
+  const stop = async (taskId: number, opts: { syncState?: boolean } = {}) => {
     const { syncState = true } = opts;
     const timer = running[taskId];
-    const task = tasks.find((t) => t.id === taskId);
     const elapsed = liveElapsedSeconds(timer, Date.now());
 
     dispatch(stopTimer(taskId));
 
+    // The store only holds the open project's tasks; a timer stopped from the
+    // header panel elsewhere (e.g. after a reload) still needs the saved total.
+    let task = tasks.find((t) => t.id === taskId);
+    if (!task) {
+      try {
+        task = (await tasksApi.getAll()).find((t) => t.id === taskId);
+      } catch {
+        showToast("Couldn't save the tracked time — failed to load the task.", "error");
+        return;
+      }
+    }
     if (!task) return;
     const newTotalSeconds = timeStringToSeconds(task.timeTaken) + elapsed;
     dispatch(

@@ -53,10 +53,32 @@ const timersSlice = createSlice({
     stopTimer: (state, action: PayloadAction<number>) => {
       delete state.running[action.payload];
     },
+    // Pauses every ticking timer as of `at` (ms epoch), so time spent idle
+    // before the pause was noticed isn't counted.
+    pauseAllTimers: (state, action: PayloadAction<{ at: number }>) => {
+      for (const timer of Object.values(state.running)) {
+        if (timer.startedAt === null) continue;
+        const end = Math.max(action.payload.at, timer.startedAt);
+        timer.accumulatedSeconds += Math.floor((end - timer.startedAt) / 1000);
+        timer.startedAt = null;
+      }
+    },
+    // Replaces the running timers wholesale, e.g. with the copy saved in
+    // localStorage after a reload or written by another tab.
+    hydrateTimers: (state, action: PayloadAction<Record<number, RunningTimer>>) => {
+      state.running = action.payload;
+    },
   },
 });
 
-export const { startTimer, pauseTimer, resumeTimer, stopTimer } = timersSlice.actions;
+export const {
+  startTimer,
+  pauseTimer,
+  resumeTimer,
+  stopTimer,
+  pauseAllTimers,
+  hydrateTimers,
+} = timersSlice.actions;
 
 const selectRunning = (state: RootState) => state.timers.running;
 
