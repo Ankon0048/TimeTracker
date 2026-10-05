@@ -1,19 +1,16 @@
 "use client";
 
 import React from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
 import Placeholder from "@tiptap/extension-placeholder";
-import { ActionIcon, Tooltip } from "@mantine/core";
-import {
-  Bold,
-  Italic,
-  Underline as UnderlineIcon,
-  List,
-  ListOrdered,
-  Strikethrough,
-} from "lucide-react";
+import Highlight from "@tiptap/extension-highlight";
+import TextAlign from "@tiptap/extension-text-align";
+import Subscript from "@tiptap/extension-subscript";
+import Superscript from "@tiptap/extension-superscript";
+import { Color, TextStyle } from "@tiptap/extension-text-style";
+import { TaskItem, TaskList } from "@tiptap/extension-list";
+import { Link, RichTextEditor as MantineRichTextEditor } from "@mantine/tiptap";
 
 interface RichTextEditorProps {
   value: string; // HTML string
@@ -22,32 +19,22 @@ interface RichTextEditorProps {
   placeholder?: string;
 }
 
-interface ToolbarButtonProps {
-  onClick: () => void;
-  active?: boolean;
-  title: string;
-  children: React.ReactNode;
-}
-
-const ToolbarButton: React.FC<ToolbarButtonProps> = ({
-  onClick,
-  active,
-  title,
-  children,
-}) => (
-  <Tooltip label={title}>
-    <ActionIcon
-      variant={active ? "filled" : "subtle"}
-      color={active ? "blue" : "gray"}
-      size="md"
-      onClick={onClick}
-      aria-label={title}
-      aria-pressed={active}
-    >
-      {children}
-    </ActionIcon>
-  </Tooltip>
-);
+const TEXT_COLORS = [
+  "#25262b",
+  "#868e96",
+  "#fa5252",
+  "#e64980",
+  "#be4bdb",
+  "#7950f2",
+  "#4c6ef5",
+  "#228be6",
+  "#15aabf",
+  "#12b886",
+  "#40c057",
+  "#82c91e",
+  "#fab005",
+  "#fd7e14",
+];
 
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
@@ -57,7 +44,20 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 }) => {
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: [StarterKit, Underline, Placeholder.configure({ placeholder })],
+    extensions: [
+      // StarterKit ships its own Link; Mantine's adds the link-editing popover shortcut.
+      StarterKit.configure({ link: false }),
+      Link.configure({ openOnClick: false }),
+      Highlight,
+      TextStyle,
+      Color,
+      Subscript,
+      Superscript,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      TaskList,
+      TaskItem.configure({ nested: true }),
+      Placeholder.configure({ placeholder }),
+    ],
     content: value,
     editable: !disabled,
     onUpdate({ editor }) {
@@ -81,101 +81,70 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   }, [disabled, editor]);
 
   return (
-    <div
-      style={{
-        border: "1px solid var(--mantine-color-gray-4)",
-        borderRadius: "var(--mantine-radius-md)",
-        overflow: "hidden",
-        background: disabled ? "var(--mantine-color-gray-1)" : "var(--mantine-color-body)",
-      }}
+    <MantineRichTextEditor
+      editor={editor}
+      bg={disabled ? "gray.1" : undefined}
+      className="rich-text-editor"
     >
       {!disabled && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-            padding: "6px 8px",
-            borderBottom: "1px solid var(--mantine-color-gray-3)",
-            background: "var(--mantine-color-gray-0)",
-          }}
-        >
-          <ToolbarButton
-            onClick={() => editor?.chain().focus().toggleBold().run()}
-            active={editor?.isActive("bold")}
-            title="Bold"
-          >
-            <Bold size={14} />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor?.chain().focus().toggleItalic().run()}
-            active={editor?.isActive("italic")}
-            title="Italic"
-          >
-            <Italic size={14} />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor?.chain().focus().toggleUnderline().run()}
-            active={editor?.isActive("underline")}
-            title="Underline"
-          >
-            <UnderlineIcon size={14} />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor?.chain().focus().toggleStrike().run()}
-            active={editor?.isActive("strike")}
-            title="Strikethrough"
-          >
-            <Strikethrough size={14} />
-          </ToolbarButton>
-          <div
-            style={{
-              width: "1px",
-              alignSelf: "stretch",
-              background: "var(--mantine-color-gray-3)",
-              margin: "2px 4px",
-            }}
-          />
-          <ToolbarButton
-            onClick={() => editor?.chain().focus().toggleBulletList().run()}
-            active={editor?.isActive("bulletList")}
-            title="Bullet List"
-          >
-            <List size={14} />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-            active={editor?.isActive("orderedList")}
-            title="Ordered List"
-          >
-            <ListOrdered size={14} />
-          </ToolbarButton>
-        </div>
+        <MantineRichTextEditor.Toolbar>
+          <MantineRichTextEditor.ControlsGroup>
+            <MantineRichTextEditor.Bold />
+            <MantineRichTextEditor.Italic />
+            <MantineRichTextEditor.Underline />
+            <MantineRichTextEditor.Strikethrough />
+            <MantineRichTextEditor.Highlight />
+            <MantineRichTextEditor.Code />
+            <MantineRichTextEditor.ClearFormatting />
+          </MantineRichTextEditor.ControlsGroup>
+
+          <MantineRichTextEditor.ControlsGroup>
+            <MantineRichTextEditor.ColorPicker colors={TEXT_COLORS} />
+            <MantineRichTextEditor.UnsetColor />
+          </MantineRichTextEditor.ControlsGroup>
+
+          <MantineRichTextEditor.ControlsGroup>
+            <MantineRichTextEditor.H1 />
+            <MantineRichTextEditor.H2 />
+            <MantineRichTextEditor.H3 />
+          </MantineRichTextEditor.ControlsGroup>
+
+          <MantineRichTextEditor.ControlsGroup>
+            <MantineRichTextEditor.BulletList />
+            <MantineRichTextEditor.OrderedList />
+            <MantineRichTextEditor.TaskList />
+            <MantineRichTextEditor.TaskListSink />
+            <MantineRichTextEditor.TaskListLift />
+          </MantineRichTextEditor.ControlsGroup>
+
+          <MantineRichTextEditor.ControlsGroup>
+            <MantineRichTextEditor.Blockquote />
+            <MantineRichTextEditor.CodeBlock />
+            <MantineRichTextEditor.Hr />
+            <MantineRichTextEditor.Subscript />
+            <MantineRichTextEditor.Superscript />
+          </MantineRichTextEditor.ControlsGroup>
+
+          <MantineRichTextEditor.ControlsGroup>
+            <MantineRichTextEditor.Link />
+            <MantineRichTextEditor.Unlink />
+          </MantineRichTextEditor.ControlsGroup>
+
+          <MantineRichTextEditor.ControlsGroup>
+            <MantineRichTextEditor.AlignLeft />
+            <MantineRichTextEditor.AlignCenter />
+            <MantineRichTextEditor.AlignRight />
+            <MantineRichTextEditor.AlignJustify />
+          </MantineRichTextEditor.ControlsGroup>
+
+          <MantineRichTextEditor.ControlsGroup>
+            <MantineRichTextEditor.Undo />
+            <MantineRichTextEditor.Redo />
+          </MantineRichTextEditor.ControlsGroup>
+        </MantineRichTextEditor.Toolbar>
       )}
 
-      <style>{`
-        .tiptap-editor .tiptap {
-          padding: 8px 12px;
-          min-height: 100px;
-          outline: none;
-          font-size: 0.875rem;
-          color: var(--mantine-color-text);
-          line-height: 1.6;
-        }
-        .tiptap-editor .tiptap p { margin: 0 0 0.25rem; }
-        .tiptap-editor .tiptap ul,
-        .tiptap-editor .tiptap ol { padding-left: 1.25rem; margin: 0.25rem 0; }
-        .tiptap-editor .tiptap p.is-editor-empty:first-child::before {
-          content: attr(data-placeholder);
-          color: #adb5bd;
-          pointer-events: none;
-          float: left;
-          height: 0;
-        }
-      `}</style>
-      <div className="tiptap-editor">
-        <EditorContent editor={editor} />
-      </div>
-    </div>
+      <MantineRichTextEditor.Content />
+    </MantineRichTextEditor>
   );
 };

@@ -7,6 +7,7 @@ import { AppHeader } from "@/components/AppHeader";
 import "./globals.css";
 import "@mantine/core/styles.layer.css";
 import "@mantine/notifications/styles.layer.css";
+import "@mantine/tiptap/styles.layer.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
